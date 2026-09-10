@@ -1,0 +1,50 @@
+name: Build SKSE Plugin
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Check formatting
+        run: |
+          clang-format --version
+          Get-ChildItem src -Recurse -Include *.cpp,*.h | ForEach-Object { clang-format -i $_.FullName }
+          git diff --exit-code
+
+      - name: Setup XMake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          build-cache: true
+          package-cache: true
+          build-cache-key: windows-ci-${{ hashFiles('xmake.lua', 'src/**') }}
+          package-cache-key: windows-ci-${{ hashFiles('xmake.lua') }}
+
+      - name: Update xmake package repo
+        run: xmake repo --update
+
+      - name: Configure
+        run: xmake config -m releasedbg -a x64 --yes
+
+      - name: Build
+        run: xmake build --yes
+
+      - name: Package
+        run: xmake package --yes
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SaferSaving
+          path: build/packages/*.zip
