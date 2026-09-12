@@ -6,7 +6,7 @@ set_config("rex_ini", true)
 
 set_project("SaferSaving")
 set_version("1.0.0")
-set_license("MIT")
+set_license("GPL-3.0-only")
 
 set_languages("c++23")
 set_warnings("allextra")
@@ -28,3 +28,4 @@ target("SaferSaving")
     set_pcxxheader("src/pch.h")
 
     add_installfiles("release/SaferSaving.ini", {prefixdir = "SKSE/Plugins"})
+    add_installfiles("LICENSE")
