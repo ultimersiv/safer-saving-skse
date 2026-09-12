@@ -36,9 +36,7 @@ available when you are standing still.
 
 ## Installing
 
-Drop `SaferSaving.dll` into `Data/SKSE/Plugins/`, or install the archive with your mod manager.
-
-Safe to uninstall mid save by just deleting the DLL.
+Drop into your Skyrim install dir, or install the archive with your mod manager. Safe to uninstall at any time.
 
 ## Configuration
 
