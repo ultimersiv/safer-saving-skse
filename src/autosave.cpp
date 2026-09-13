@@ -118,7 +118,9 @@ bool CanDispatch(RE::PlayerCharacter* a_player)
         }
     }
 
-    const auto* data = RE::TESDataHandler::GetSingleton();
+    // false skips the VR ESL probe, which costs a QPC on every call there and tells us nothing
+    // about whether saving is allowed
+    const auto* data = RE::TESDataHandler::GetSingleton(false);
     return !data || !data->GetGeometryRuntimeData().blockSave;
 }
 
