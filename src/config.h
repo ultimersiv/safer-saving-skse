@@ -6,7 +6,7 @@ void Load();
 
 inline REX::INI::I32<> settleSeconds{"Load", "iSettleSeconds", 30}; // zero disables the wait
 
-// zero disables autosaving entirely; slots set how many files the rotation cycles through
+// zero disables autosaving
 inline REX::INI::I32<> autoSaveMinutes{"AutoSave", "iIntervalMinutes", 15};
 inline REX::INI::I32<> autoSaveSlots{"AutoSave", "iSlots", 5};
 

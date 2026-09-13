@@ -20,9 +20,8 @@ struct PlayerUpdate
 
 void InstallHook()
 {
-    // Actor::Update is 0AD on SE/AE. VR inserts one extra virtual before 0x82 and a second before
-    // 0xA6, so by Update the shift is two, not one: 0AF on VR, where 0AE is PutActorOnMountQuick.
-    // The library resolver agrees, see Actor.cpp RelocateVirtual<Actor::Update>(0x0AD, 0x0AF).
+    // Actor::Update is 0AD on SE/AE and 0AF on VR, which adds a second extra virtual before 0xA6;
+    // 0AE there is PutActorOnMountQuick. See RelocateVirtual<Actor::Update> in Actor.cpp.
     const std::size_t index = REL::Module::IsVR() ? 0xAF : 0xAD;
 
     REL::Relocation<std::uintptr_t> vtbl{RE::VTABLE_PlayerCharacter[0]};

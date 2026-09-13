@@ -9,21 +9,20 @@ namespace Config = SaferSaving::Config;
 constexpr auto kDisableSaving = RE::PlayerCharacter::ByCharGenFlag::kDisableSaving;
 constexpr std::string_view kSlotPrefix{"SaferSave_"};
 constexpr const char* kNotification{"Autosaving..."};
-// a gap this long is a pause, a loading screen or a stall rather than play, so it is dropped
-// instead of counted. this is what makes the interval measure time actually spent playing
+// anything longer is a pause, a load or a stall
 constexpr std::uint32_t kMaxStepMS{250};
-// two digits, so the file name width is fixed
+// two digits in the file name
 constexpr std::int32_t kMinSlots{1};
 constexpr std::int32_t kMaxSlots{99};
-// keeps the interval in milliseconds comfortably inside 32 bits
+// keeps the interval in milliseconds inside 32 bits
 constexpr std::int32_t kMinMinutes{1};
 constexpr std::int32_t kMaxMinutes{1440};
 
-// written once by Init, before the first frame, and only read afterwards
+// set once by Init
 std::uint32_t g_intervalMS{0};
 std::uint32_t g_slots{1};
 
-// only ever touched by Tick, which keeps it off the atomics
+// only Tick touches this
 std::uint32_t g_rearmSeen{0};
 
 std::atomic<std::uint32_t> g_lastTickMS{0};
@@ -50,8 +49,7 @@ std::uint32_t TakeNextSlot()
     return next;
 }
 
-// the slot holding the newest save of ours, so a restart carries on after it instead of
-// overwriting it. zero when none of our saves are on the list
+// newest slot of ours on the save list, or zero
 std::uint32_t FindNewestSlot()
 {
     const auto* manager = RE::BGSSaveLoadManager::GetSingleton();
@@ -76,7 +74,7 @@ std::uint32_t FindNewestSlot()
             continue;
         }
 
-        // parsed leniently, so it does not matter whether the list holds the extension or not
+        // lenient, in case the name carries the extension
         const auto digits  = name.substr(kSlotPrefix.size());
         std::uint32_t slot = 0;
         if (std::from_chars(digits.data(), digits.data() + digits.size(), slot).ec != std::errc{} || slot == 0)
@@ -94,16 +92,14 @@ std::uint32_t FindNewestSlot()
         }
     }
 
-    // entries whose headers the game has not read report no time, so fall back to the index
+    // unread headers report no time, so fall back to the highest index
     return newestTime != 0 ? newestSlot : highestSlot;
 }
 
-// the block list says the player is somewhere safe; this says the engine will actually take the
-// request. every one of these makes the game drop a save on the floor without a word
+// whether the engine itself would take a save; Save_Impl fails silently otherwise
 bool CanDispatch(RE::PlayerCharacter* a_player)
 {
-    // AllowSaving leaves the flag alone when another mod or character creation owns it, so a clear
-    // verdict from our own checks does not mean the game will accept a save
+    // another mod or chargen may own the flag, and AllowSaving never clears those
     if (a_player->GetGameStatsData().byCharGenFlag.any(kDisableSaving))
     {
         return false;
@@ -118,18 +114,17 @@ bool CanDispatch(RE::PlayerCharacter* a_player)
         }
     }
 
-    // false skips the VR ESL probe, which costs a QPC on every call there and tells us nothing
-    // about whether saving is allowed
+    // false skips the VR ESL probe, a clock read per call on VR
     const auto* data = RE::TESDataHandler::GetSingleton(false);
     return !data || !data->GetGeometryRuntimeData().blockSave;
 }
 
-// runs on the main thread from the queued task, a frame or so after the decision was taken
+// runs from the task queue, a frame after Tick decided
 void Write(std::uint32_t a_generation)
 {
     g_dispatched.store(false, std::memory_order_relaxed);
 
-    // a load in between would put this save in a different session than the one that asked for it
+    // a load in between means this save belongs to a session that is gone
     if (g_generation.load(std::memory_order_relaxed) != a_generation)
     {
         return;
@@ -142,8 +137,7 @@ void Write(std::uint32_t a_generation)
         return;
     }
 
-    // state can move between the decision and here, so ask again. the guard closes most of this
-    // window itself: if the player started moving, the Apply call this frame already set the flag
+    // a frame has passed, and the guard may have set the flag since
     if (!CanDispatch(player))
     {
         g_pending.store(true, std::memory_order_relaxed);
@@ -154,20 +148,6 @@ void Write(std::uint32_t a_generation)
     RE::SendHUDMessage::ShowHUDMessage(kNotification);
     manager->Save(name.c_str());
     logs::info("autosaved to {}", name);
-}
-
-// saving walks the whole game state, so it does not belong inside an actor update. the task
-// interface runs it on the main thread at the frame drain point, where the engine does its own
-void Dispatch()
-{
-    const auto* task = SKSE::GetTaskInterface();
-    if (!task)
-    {
-        g_dispatched.store(false, std::memory_order_relaxed);
-        return;
-    }
-
-    task->AddTask([generation = g_generation.load(std::memory_order_relaxed)] { Write(generation); });
 }
 } // namespace
 
@@ -196,10 +176,9 @@ void SaferSaving::AutoSave::OnGameLoaded()
         return;
     }
 
-    // a pending save described a session that no longer exists, so it goes with the old game
+    // a task queued by the old session must not run
     g_generation.fetch_add(1, std::memory_order_relaxed);
-    // if a queued task was dropped rather than run, this flag would otherwise stay set and kill
-    // autosaving for the rest of the session
+    // and if it never runs at all, this must not stay set
     g_dispatched.store(false, std::memory_order_relaxed);
     g_lastTickMS.store(0, std::memory_order_relaxed);
     g_elapsedMS.store(0, std::memory_order_relaxed);
@@ -215,10 +194,7 @@ void SaferSaving::AutoSave::OnSaved()
         return;
     }
 
-    // Fires for our own save too, which is the point: the interval always runs from the last save
-    // on disk, whoever asked for it. This can arrive off the main thread, so it only nudges a
-    // counter and lets Tick do the reset; storing the timer here could lose the reset to the
-    // fetch_add running concurrently in Tick.
+    // just a counter: kSaveGame may arrive off the main thread, and Tick owns the timer
     g_rearm.fetch_add(1, std::memory_order_relaxed);
 }
 
@@ -229,7 +205,7 @@ void SaferSaving::AutoSave::Tick(RE::PlayerCharacter* a_player, std::uint32_t a_
         return;
     }
 
-    // a save landed since the last frame, from us or from the player, so the interval starts over
+    // a save landed, ours or the player's, so the interval restarts
     if (const auto rearm = g_rearm.load(std::memory_order_relaxed); rearm != g_rearmSeen)
     {
         g_rearmSeen = rearm;
@@ -238,19 +214,24 @@ void SaferSaving::AutoSave::Tick(RE::PlayerCharacter* a_player, std::uint32_t a_
         g_complained.store(false, std::memory_order_relaxed);
     }
 
-    const auto lastMS = g_lastTickMS.exchange(a_now, std::memory_order_relaxed);
+    // load and store rather than exchange: only Tick writes these, and this is every frame
+    const auto lastMS = g_lastTickMS.load(std::memory_order_relaxed);
+    g_lastTickMS.store(a_now, std::memory_order_relaxed);
+
+    auto elapsed = g_elapsedMS.load(std::memory_order_relaxed);
     if (lastMS != 0)
     {
-        // unsigned, so the counter wrapping costs one clamped step and nothing else
-        g_elapsedMS.fetch_add((std::min)(a_now - lastMS, kMaxStepMS), std::memory_order_relaxed);
+        // unsigned, so a wrapped counter costs one clamped step
+        elapsed += (std::min)(a_now - lastMS, kMaxStepMS);
+        g_elapsedMS.store(elapsed, std::memory_order_relaxed);
     }
 
-    if (g_elapsedMS.load(std::memory_order_relaxed) >= g_intervalMS)
+    if (elapsed >= g_intervalMS)
     {
         g_pending.store(true, std::memory_order_relaxed);
     }
 
-    // the pending flag is the whole feature: a blocked interval becomes a deferral, not a miss
+    // a blocked interval waits rather than skips
     if (!g_pending.load(std::memory_order_relaxed) || a_blocked || g_dispatched.load(std::memory_order_relaxed))
     {
         return;
@@ -269,5 +250,8 @@ void SaferSaving::AutoSave::Tick(RE::PlayerCharacter* a_player, std::uint32_t a_
     g_dispatched.store(true, std::memory_order_relaxed);
     g_pending.store(false, std::memory_order_relaxed);
     g_elapsedMS.store(0, std::memory_order_relaxed);
-    Dispatch();
+
+    // never save from inside an actor update; the task queue drains at the end of the frame
+    const auto generation = g_generation.load(std::memory_order_relaxed);
+    SKSE::GetTaskInterface()->AddTask([generation] { Write(generation); });
 }

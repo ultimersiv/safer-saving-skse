@@ -10,6 +10,8 @@ namespace Clock  = SaferSaving::Clock;
 namespace Config = SaferSaving::Config;
 
 constexpr auto kDisableSaving = RE::PlayerCharacter::ByCharGenFlag::kDisableSaving;
+// a day, to keep the settle deadline in milliseconds inside 32 bits
+constexpr std::int32_t kMaxSettleSeconds{86400};
 
 std::atomic<std::uint32_t> g_settleUntil{0};
 std::atomic<bool> g_ownsFlag{false};
@@ -135,7 +137,7 @@ bool ShouldBlock(RE::PlayerCharacter* a_player, std::uint32_t a_now)
             return true;
         }
 
-        // the wait is over; clearing it keeps a wrapped counter from reading as a fresh deadline
+        // or a wrapped counter would read as a new deadline
         g_settleUntil.store(0, std::memory_order_relaxed);
     }
 
@@ -187,7 +189,6 @@ void AllowSaving(RE::PlayerCharacter* a_player)
     g_ownsFlag.store(false, std::memory_order_relaxed);
 }
 
-// one decision, applied and handed back, so the caller never has to ask twice
 bool Apply(RE::PlayerCharacter* a_player, std::uint32_t a_now)
 {
     const bool blocked = ShouldBlock(a_player, a_now);
@@ -225,11 +226,10 @@ void SaferSaving::BeginSettle()
         return;
     }
 
-    // a day is far past anything anyone means by settling, and it keeps the milliseconds in range
-    auto until = Clock::Now() + (static_cast<std::uint32_t>((std::min)(seconds, 86400)) * 1000u);
+    auto until = Clock::Now() + (static_cast<std::uint32_t>((std::min)(seconds, kMaxSettleSeconds)) * 1000u);
     if (until == 0)
     {
-        // zero means "not settling", so step over it rather than cancel the wait
+        // zero is the idle value
         until = 1;
     }
 
@@ -256,8 +256,7 @@ void SaferSaving::OnGameLoaded()
 
 void SaferSaving::Reevaluate()
 {
-    // menu events only, so this deliberately does not drive the autosave timer: the frame hook
-    // stays its single writer
+    // menu events only; the frame hook alone drives the autosave timer
     if (auto* player = RE::PlayerCharacter::GetSingleton())
     {
         Apply(player, Clock::Now());
@@ -272,8 +271,6 @@ void SaferSaving::OnFrame()
         return;
     }
 
-    // one clock read and one verdict, shared: the autosave fires exactly when a manual save would
-    // be allowed, and costs nothing the guard was not already paying
     const auto now     = Clock::Now();
     const bool blocked = Apply(player, now);
 

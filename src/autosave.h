@@ -2,15 +2,15 @@
 
 namespace SaferSaving::AutoSave
 {
-// reads and range-checks the ini values once, before the first frame
+// reads the ini once, before the first frame
 void Init();
 
-// a load or a new game restarts the interval and reseeds the rotation slot
+// restarts the interval and reseeds the slot
 void OnGameLoaded();
 
-// any save at all re-arms the interval, so we never autosave moments after the player saved
+// any save re-arms the interval
 void OnSaved();
 
-// frame hook, sharing the clock read and the verdict the guard has already computed
+// per frame, with the clock read and verdict the guard already has
 void Tick(RE::PlayerCharacter* a_player, std::uint32_t a_now, bool a_blocked);
 } // namespace SaferSaving::AutoSave
