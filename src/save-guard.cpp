@@ -226,7 +226,7 @@ void SaferSaving::BeginSettle()
     }
 
     // a day is far past anything anyone means by settling, and it keeps the milliseconds in range
-    auto until = Clock::Now() + (static_cast<std::uint32_t>(std::min(seconds, 86400)) * 1000u);
+    auto until = Clock::Now() + (static_cast<std::uint32_t>((std::min)(seconds, 86400)) * 1000u);
     if (until == 0)
     {
         // zero means "not settling", so step over it rather than cancel the wait

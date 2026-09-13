@@ -84,7 +84,7 @@ std::uint32_t FindNewestSlot()
             continue;
         }
 
-        highestSlot = std::max(highestSlot, slot);
+        highestSlot = (std::max)(highestSlot, slot);
 
         const std::uint64_t saved = entry->saveTime;
         if (saved > newestTime)
@@ -240,7 +240,7 @@ void SaferSaving::AutoSave::Tick(RE::PlayerCharacter* a_player, std::uint32_t a_
     if (lastMS != 0)
     {
         // unsigned, so the counter wrapping costs one clamped step and nothing else
-        g_elapsedMS.fetch_add(std::min(a_now - lastMS, kMaxStepMS), std::memory_order_relaxed);
+        g_elapsedMS.fetch_add((std::min)(a_now - lastMS, kMaxStepMS), std::memory_order_relaxed);
     }
 
     if (g_elapsedMS.load(std::memory_order_relaxed) >= g_intervalMS)
