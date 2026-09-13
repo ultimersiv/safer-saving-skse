@@ -1,14 +1,17 @@
 #include "save-guard.h"
 
+#include "autosave.h"
+#include "clock.h"
 #include "config.h"
 
 namespace
 {
+namespace Clock  = SaferSaving::Clock;
 namespace Config = SaferSaving::Config;
 
 constexpr auto kDisableSaving = RE::PlayerCharacter::ByCharGenFlag::kDisableSaving;
 
-std::atomic<std::chrono::steady_clock::time_point> g_settleUntil{};
+std::atomic<std::uint32_t> g_settleUntil{0};
 std::atomic<bool> g_ownsFlag{false};
 
 static_assert(decltype(g_settleUntil)::is_always_lock_free);
@@ -123,11 +126,17 @@ bool AnyBlockingMenuOpen()
     return MatchBlockingMenu([ui](const RE::BSFixedString& a_name) { return ui->IsMenuOpen(a_name); });
 }
 
-bool ShouldBlock(RE::PlayerCharacter* a_player)
+bool ShouldBlock(RE::PlayerCharacter* a_player, std::uint32_t a_now)
 {
-    if (std::chrono::steady_clock::now() < g_settleUntil.load(std::memory_order_relaxed))
+    if (const auto until = g_settleUntil.load(std::memory_order_relaxed); until != 0)
     {
-        return true;
+        if (!Clock::Reached(a_now, until))
+        {
+            return true;
+        }
+
+        // the wait is over; clearing it keeps a wrapped counter from reading as a fresh deadline
+        g_settleUntil.store(0, std::memory_order_relaxed);
     }
 
     // the one [State] check outside the table, since it runs before AsActorState
@@ -156,7 +165,7 @@ bool ShouldBlock(RE::PlayerCharacter* a_player)
 
 void BlockSaving(RE::PlayerCharacter* a_player)
 {
-    auto& flags = a_player->GetPlayerRuntimeData().byCharGenFlag;
+    auto& flags = a_player->GetGameStatsData().byCharGenFlag;
     if (flags.any(kDisableSaving))
     {
         return;
@@ -168,7 +177,7 @@ void BlockSaving(RE::PlayerCharacter* a_player)
 
 void AllowSaving(RE::PlayerCharacter* a_player)
 {
-    auto& flags = a_player->GetPlayerRuntimeData().byCharGenFlag;
+    auto& flags = a_player->GetGameStatsData().byCharGenFlag;
     if (!flags.any(kDisableSaving) || !g_ownsFlag.load(std::memory_order_relaxed))
     {
         return;
@@ -176,6 +185,22 @@ void AllowSaving(RE::PlayerCharacter* a_player)
 
     flags.reset(kDisableSaving);
     g_ownsFlag.store(false, std::memory_order_relaxed);
+}
+
+// one decision, applied and handed back, so the caller never has to ask twice
+bool Apply(RE::PlayerCharacter* a_player, std::uint32_t a_now)
+{
+    const bool blocked = ShouldBlock(a_player, a_now);
+    if (blocked)
+    {
+        BlockSaving(a_player);
+    }
+    else
+    {
+        AllowSaving(a_player);
+    }
+
+    return blocked;
 }
 } // namespace
 
@@ -200,7 +225,15 @@ void SaferSaving::BeginSettle()
         return;
     }
 
-    g_settleUntil.store(std::chrono::steady_clock::now() + std::chrono::seconds{seconds}, std::memory_order_relaxed);
+    // a day is far past anything anyone means by settling, and it keeps the milliseconds in range
+    auto until = Clock::Now() + (static_cast<std::uint32_t>(std::min(seconds, 86400)) * 1000u);
+    if (until == 0)
+    {
+        // zero means "not settling", so step over it rather than cancel the wait
+        until = 1;
+    }
+
+    g_settleUntil.store(until, std::memory_order_relaxed);
 
     if (auto* player = RE::PlayerCharacter::GetSingleton())
     {
@@ -213,7 +246,7 @@ void SaferSaving::OnGameLoaded()
     // clear flag just in case
     if (auto* player = RE::PlayerCharacter::GetSingleton())
     {
-        player->GetPlayerRuntimeData().byCharGenFlag.reset(kDisableSaving);
+        player->GetGameStatsData().byCharGenFlag.reset(kDisableSaving);
     }
 
     g_ownsFlag.store(false, std::memory_order_relaxed);
@@ -223,18 +256,26 @@ void SaferSaving::OnGameLoaded()
 
 void SaferSaving::Reevaluate()
 {
+    // menu events only, so this deliberately does not drive the autosave timer: the frame hook
+    // stays its single writer
+    if (auto* player = RE::PlayerCharacter::GetSingleton())
+    {
+        Apply(player, Clock::Now());
+    }
+}
+
+void SaferSaving::OnFrame()
+{
     auto* player = RE::PlayerCharacter::GetSingleton();
     if (!player)
     {
         return;
     }
 
-    if (ShouldBlock(player))
-    {
-        BlockSaving(player);
-    }
-    else
-    {
-        AllowSaving(player);
-    }
+    // one clock read and one verdict, shared: the autosave fires exactly when a manual save would
+    // be allowed, and costs nothing the guard was not already paying
+    const auto now     = Clock::Now();
+    const bool blocked = Apply(player, now);
+
+    AutoSave::Tick(player, now, blocked);
 }

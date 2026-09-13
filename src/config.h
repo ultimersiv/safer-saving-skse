@@ -6,6 +6,10 @@ void Load();
 
 inline REX::INI::I32<> settleSeconds{"Load", "iSettleSeconds", 30}; // zero disables the wait
 
+// zero disables autosaving entirely; slots set how many files the rotation cycles through
+inline REX::INI::I32<> autoSaveMinutes{"AutoSave", "iIntervalMinutes", 15};
+inline REX::INI::I32<> autoSaveSlots{"AutoSave", "iSlots", 5};
+
 inline REX::INI::Bool<> inCombat{"Combat", "bInCombat", true};
 inline REX::INI::Bool<> attacking{"Combat", "bAttacking", true};
 inline REX::INI::Bool<> weaponDrawn{"Combat", "bWeaponDrawn", true};

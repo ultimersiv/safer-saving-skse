@@ -28,6 +28,26 @@ This mod tries to minimize the chances of that happening for longer running play
 The journal and the save/load menus are never blocked, so a deliberate manual save is always
 available when you are standing still.
 
+## Automatic saving
+
+Every 15 minutes the mod saves for you. Only time you actually spend playing counts towards
+that: the timer stops while the game is paused, while a menu that pauses the game is open, and
+during loading screens, and slowing or speeding up time does not change it.
+
+The useful part is what happens when the 15 minutes are up at a bad moment. The save is not
+skipped and it is not forced through. It waits, and happens on the first frame that saving is
+allowed again by the same list above. If you are deep in a fight, the save lands the moment the
+fight ends. There is no time limit on that wait and no fallback that saves anyway, because a
+save taken at a bad moment is the thing this mod exists to prevent.
+
+Saves go to `SaferSave_01` upwards, rotating through five files by default. Your own saves, the
+vanilla `Autosave` slots and the quicksave are never touched, and the vanilla autosave settings
+are left exactly as they are. You get one "Autosaving..." message in the corner when a save is
+written; waiting is silent. Saving by any other means, including your own quicksave, restarts
+the 15 minutes, so the mod will not save again right after you just did.
+
+The slots are shared across characters, so a second playthrough rotates through the same files.
+
 ## Requirements
 
 [SKSE](https://skse.silverlock.org/)
@@ -36,12 +56,15 @@ available when you are standing still.
 
 ## Installing
 
-Drop into your Skyrim install dir, or install the archive with your mod manager. Safe to uninstall at any time.
+Drop into your Skyrim install dir, or install the archive with your mod manager. Safe to uninstall at any time:
+the mod stores nothing inside your saves, so removing it leaves behind only the `SaferSave_NN` files, which are
+ordinary saves to keep or delete as you like.
 
 ## Configuration
 
-Every check above can be turned off individually, and the post-load wait can be changed or
-disabled. The defaults match the list above, so the mod works without touching anything.
+Every check above can be turned off individually, the post-load wait can be changed or
+disabled, and the automatic save interval and slot count can be changed or turned off. The
+defaults match the list above, so the mod works without touching anything.
 
 Settings live in `Data/SKSE/Plugins/SaferSaving.ini`. Do not edit that file; it is overwritten
 on update. Create `SaferSaving_custom.ini` beside it and copy in only the lines you want to
@@ -56,6 +79,10 @@ bAnimationDriven = false   # allows saving while seated
 
 [Load]
 iSettleSeconds = 10
+
+[AutoSave]
+iIntervalMinutes = 30      # or 0 to turn automatic saving off
+iSlots = 3
 ```
 
 Anything you leave out keeps its default.
