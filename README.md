@@ -40,13 +40,14 @@ allowed again by the same list above. If you are deep in a fight, the save lands
 fight ends. There is no time limit on that wait and no fallback that saves anyway, because a
 save taken at a bad moment is the thing this mod exists to prevent.
 
-Saves go to `SaferSave_01` upwards, rotating through five files by default. Your own saves, the
-vanilla `Autosave` slots and the quicksave are never touched, and the vanilla autosave settings
-are left exactly as they are. You get one "Autosaving..." message in the corner when a save is
+Saves appear in the load menu as autosaves of the current character, in slots 1001 upwards,
+rotating through five by default. Vanilla autosaves live in slots 1 to 3, so they, your own saves
+and the quicksave are never touched, and the vanilla autosave settings are left exactly as they
+are. On disk the files are named `Autosave1001_...` with `SaferSave` in the name. You get one "Autosaving..." message in the corner when a save is
 written; waiting is silent. Saving by any other means, including your own quicksave, restarts
 the 15 minutes, so the mod will not save again right after you just did.
 
-The slots are shared across characters, so a second playthrough rotates through the same files.
+Slots are per character: the file name carries the id the game uses to group the load menu.
 
 ## Requirements
 
@@ -57,8 +58,8 @@ The slots are shared across characters, so a second playthrough rotates through 
 ## Installing
 
 Drop into your Skyrim install dir, or install the archive with your mod manager. Safe to uninstall at any time:
-the mod stores nothing inside your saves, so removing it leaves behind only the `SaferSave_NN` files, which are
-ordinary saves to keep or delete as you like.
+the mod stores nothing inside your saves, so removing it leaves behind only its `Autosave1001_...` files, which
+are ordinary saves to keep or delete as you like.
 
 ## Configuration
 

@@ -7,8 +7,14 @@ namespace
 namespace Config = SaferSaving::Config;
 
 constexpr auto kDisableSaving = RE::PlayerCharacter::ByCharGenFlag::kDisableSaving;
-constexpr std::string_view kSlotPrefix{"SaferSave_"};
 constexpr const char* kNotification{"Autosaving..."};
+// the load menu groups saves by a character id parsed from the file name and only accepts the
+// full vanilla shape; the engine numbers manual saves from the highest Save<N> on disk, so these
+// are autosaves in slots vanilla rotation never reaches. the fixed tail keeps each slot
+// overwriting in place; the menu sorts by file time and labels from the header, not the name
+constexpr std::string_view kNamePrefix{"Autosave"};
+constexpr std::string_view kNameTail{"_SaferSave_000000_00000000000000_1_1"};
+constexpr std::uint32_t kSlotBase{1000};
 // anything longer is a pause, a load or a stall
 constexpr std::uint32_t kMaxStepMS{250};
 // two digits in the file name
@@ -37,9 +43,23 @@ std::atomic<bool> g_complained{false};
 static_assert(decltype(g_lastTickMS)::is_always_lock_free);
 static_assert(decltype(g_pending)::is_always_lock_free);
 
-std::string SlotName(std::uint32_t a_slot)
+std::string HexOf(std::string_view a_text)
 {
-    return std::format("{}{:02}", kSlotPrefix, a_slot);
+    constexpr char kDigits[]{"0123456789ABCDEF"};
+    std::string out;
+    out.reserve(a_text.size() * 2);
+    for (const unsigned char c : a_text)
+    {
+        out.push_back(kDigits[c >> 4]);
+        out.push_back(kDigits[c & 0xF]);
+    }
+    return out;
+}
+
+std::string SlotName(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manager, const RE::PlayerCharacter& a_player)
+{
+    return std::format("{}{}_{:08X}_{}_{}{}", kNamePrefix, kSlotBase + a_slot, a_manager.currentCharacterID,
+                       a_manager.currentCharacterModded, HexOf(a_player.GetName()), kNameTail);
 }
 
 std::uint32_t TakeNextSlot()
@@ -49,7 +69,7 @@ std::uint32_t TakeNextSlot()
     return next;
 }
 
-// newest slot of ours on the save list, or zero
+// newest slot of ours for this character on the save list, or zero
 std::uint32_t FindNewestSlot()
 {
     const auto* manager = RE::BGSSaveLoadManager::GetSingleton();
@@ -57,6 +77,8 @@ std::uint32_t FindNewestSlot()
     {
         return 0;
     }
+
+    const auto ownId = std::format("_{:08X}_", manager->currentCharacterID);
 
     std::uint32_t newestSlot  = 0;
     std::uint32_t highestSlot = 0;
@@ -69,20 +91,27 @@ std::uint32_t FindNewestSlot()
         }
 
         const std::string_view name{entry->fileName};
-        if (!name.starts_with(kSlotPrefix))
+        if (!name.starts_with(kNamePrefix))
         {
             continue;
         }
 
-        // lenient, in case the name carries the extension
-        const auto digits  = name.substr(kSlotPrefix.size());
-        std::uint32_t slot = 0;
-        if (std::from_chars(digits.data(), digits.data() + digits.size(), slot).ec != std::errc{} || slot == 0)
+        const auto digits    = name.substr(kNamePrefix.size());
+        std::uint32_t number = 0;
+        const auto parsed    = std::from_chars(digits.data(), digits.data() + digits.size(), number);
+        if (parsed.ec != std::errc{} || number <= kSlotBase || number > kSlotBase + g_slots)
         {
             continue;
         }
 
-        highestSlot = (std::max)(highestSlot, slot);
+        // the id is what ties a slot to this character
+        if (!std::string_view{parsed.ptr, digits.data() + digits.size()}.starts_with(ownId))
+        {
+            continue;
+        }
+
+        const auto slot = number - kSlotBase;
+        highestSlot     = (std::max)(highestSlot, slot);
 
         const std::uint64_t saved = entry->saveTime;
         if (saved > newestTime)
@@ -144,7 +173,7 @@ void Write(std::uint32_t a_generation)
         return;
     }
 
-    const auto name = SlotName(TakeNextSlot());
+    const auto name = SlotName(TakeNextSlot(), *manager, *player);
     RE::SendHUDMessage::ShowHUDMessage(kNotification);
     manager->Save(name.c_str());
     logs::info("autosaved to {}", name);
