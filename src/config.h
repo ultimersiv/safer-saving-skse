@@ -4,6 +4,8 @@ namespace SaferSaving::Config
 {
 void Load();
 
+inline REX::INI::Bool<> notify{"Notification", "bEnabled", true};
+
 inline REX::INI::I32<> settleSeconds{"Load", "iSettleSeconds", 30}; // zero disables the wait
 
 inline REX::INI::Bool<> inCombat{"Combat", "bInCombat", true};

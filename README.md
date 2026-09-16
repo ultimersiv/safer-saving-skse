@@ -28,6 +28,13 @@ This mod tries to minimize the chances of that happening for longer running play
 The journal and the save/load menus are never blocked, so a deliberate manual save is always
 available when you are standing still.
 
+## Why won't it save?
+
+Press the quicksave key while saving is blocked and a message in the corner tells you which check
+stopped it, for example "Cannot save: In combat." Autosaves and saves made by scripts stay
+silent, so nothing appears unless you asked to save. Turn the messages off with
+`[Notification] bEnabled = false`.
+
 ## Requirements
 
 [SKSE](https://skse.silverlock.org/)

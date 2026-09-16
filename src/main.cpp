@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "config.h"
+#include "input-listener.h"
 #include "menu-listener.h"
 #include "save-guard.h"
 
@@ -37,6 +38,7 @@ void OnMessage(SKSE::MessagingInterface::Message* a_message)
     {
         case SKSE::MessagingInterface::kDataLoaded:
             SaferSaving::RegisterMenuListener();
+            SaferSaving::RegisterInputListener();
             break;
         case SKSE::MessagingInterface::kPostLoadGame:
             SaferSaving::OnGameLoaded();

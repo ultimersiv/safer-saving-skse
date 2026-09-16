@@ -7,6 +7,7 @@
 #include <REX/REX/INI.h>
 #include <atomic>
 #include <chrono>
+#include <format>
 #include <memory>
 
 namespace logs = SKSE::log;
