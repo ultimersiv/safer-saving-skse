@@ -8,6 +8,8 @@ namespace
 namespace Config = SaferSaving::Config;
 
 constexpr auto kDisableSaving = RE::PlayerCharacter::ByCharGenFlag::kDisableSaving;
+// only ever read, never set: this is the game's own flag for "waiting is off right now"
+constexpr auto kDisableWaiting = RE::PlayerCharacter::ByCharGenFlag::kDisableWaiting;
 
 std::atomic<std::chrono::steady_clock::time_point> g_settleUntil{};
 std::atomic<bool> g_ownsFlag{false};
@@ -45,7 +47,7 @@ const Check kChecks[]{
     {&Config::midair, [](const Context& c) { return c.player.IsInMidair(); }, "In midair."},
     {&Config::mounted, [](const Context& c) { return c.player.IsOnMount() || c.player.IsBeingRidden(); }, "Mounted."},
     {&Config::moving, [](const Context& c) { return c.player.IsMoving(); }, "Moving."},
-    // [State], IsAnimationDriven last: it is a graph variable lookup, the dearest check here
+    // [State]
     {&Config::notAlive, [](const Context& c) { return c.state.GetLifeState() != RE::ACTOR_LIFE_STATE::kAlive; },
      "Dead or unconscious."},
     {&Config::bleedingOut, [](const Context& c) { return c.state.IsBleedingOut(); }, "Bleeding out."},
@@ -74,9 +76,38 @@ const Check kChecks[]{
          return controls && !controls->IsMovementControlsEnabled();
      },
      "Controls disabled."},
+    // quests and scenes switch waiting off while they are mid-something, which is exactly when a save hurts
+    {&Config::waitingDisabled,
+     [](const Context& c) { return c.player.GetPlayerRuntimeData().byCharGenFlag.any(kDisableWaiting); },
+     "Waiting is disabled."},
     {&Config::grabbing, [](const Context& c) { return c.player.IsGrabbing(); }, "Holding an object."},
+    // the rest of vanilla's wait gate; both mean a guard or an owner is about to run a scene at you
+    {&Config::trespassing, [](const Context& c) { return c.player.IsTrespassing(); }, "Trespassing."},
+    {&Config::warnedToLeave,
+     [](const Context& c)
+     {
+         const auto* cell = c.player.GetParentCell();
+         return cell && cell->cellFlags.any(RE::TESObjectCELL::Flag::kWarnToLeave);
+     },
+     "Being asked to leave."},
+    // dearest two, out of their ini groups and last so that any cheaper check short-circuits them
     // also true for furniture idles, so sitting counts as busy
     {&Config::animationDriven, [](const Context& c) { return c.player.IsAnimationDriven(); }, "In an animation."},
+    // walks the high process list; trips before IsInCombat does, when something has noticed you
+    {&Config::enemiesNearby,
+     [](const Context&)
+     {
+         auto* processes = RE::ProcessLists::GetSingleton();
+         if (!processes)
+         {
+             return false;
+         }
+
+         // the out param is unused, but passing nullptr is not known to be safe
+         RE::BSScrapArray<RE::ActorHandle> hostiles;
+         return processes->AreHostileActorsNear(&hostiles);
+     },
+     "Enemies nearby."},
 };
 
 struct MenuCheck
