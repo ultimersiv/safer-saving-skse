@@ -4,6 +4,10 @@ namespace SaferSaving::Config
 {
 void Load();
 
+inline REX::INI::Bool<> notify{"Notification", "bEnabled", true};
+// the ini trims spaces, so the separator is added in code
+inline REX::INI::Str<> messagePrefix{"Notification", "sPrefix", "Cannot save:"};
+
 inline REX::INI::I32<> settleSeconds{"Load", "iSettleSeconds", 30}; // zero disables the wait
 
 inline REX::INI::Bool<> inCombat{"Combat", "bInCombat", true};

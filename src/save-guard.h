@@ -11,4 +11,6 @@ void BeginSettle();
 void OnGameLoaded();
 
 void Reevaluate();
+
+void NotifyBlockedSaveAttempt();
 } // namespace SaferSaving
