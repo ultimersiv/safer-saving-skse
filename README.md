@@ -33,7 +33,8 @@ available when you are standing still.
 Press the quicksave key while saving is blocked and a message in the corner tells you which check
 stopped it, for example "Cannot save: In combat." Autosaves and saves made by scripts stay
 silent, so nothing appears unless you asked to save. Turn the messages off with
-`[Notification] bEnabled = false`.
+`[Notification] bEnabled = false`. The "Cannot save:" lead-in is `[Notification] sPrefix`; a space
+before the reason is added for you, and leaving it blank shows the reason on its own.
 
 ## Requirements
 

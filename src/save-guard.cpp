@@ -9,9 +9,6 @@ namespace Config = SaferSaving::Config;
 
 constexpr auto kDisableSaving = RE::PlayerCharacter::ByCharGenFlag::kDisableSaving;
 
-// the reasons below complete this
-constexpr auto kMessagePrefix = "Cannot save: ";
-
 std::atomic<std::chrono::steady_clock::time_point> g_settleUntil{};
 std::atomic<bool> g_ownsFlag{false};
 
@@ -274,8 +271,19 @@ void SaferSaving::NotifyBlockedSaveAttempt()
     }
 
     // another mod's flag is not ours to explain
-    if (const auto* reason = GetBlockReason(player))
+    const auto* reason = GetBlockReason(player);
+    if (!reason)
     {
-        ShowNotification(std::format("{}{}", kMessagePrefix, reason).c_str());
+        return;
+    }
+
+    const auto prefix = Config::messagePrefix.GetValue();
+    if (prefix.empty())
+    {
+        ShowNotification(reason);
+    }
+    else
+    {
+        ShowNotification(std::format("{} {}", prefix, reason).c_str());
     }
 }
