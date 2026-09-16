@@ -7,6 +7,7 @@ This mod tries to minimize the chances of that happening for longer running play
 ## When saving is blocked
 
 - In combat
+- With enemies nearby, the same test vanilla uses before it lets you wait or fast travel
 - Moving, sprinting or sneaking
 - Jumping or falling
 - Swimming or flying
@@ -20,6 +21,8 @@ This mod tries to minimize the chances of that happening for longer running play
 - In a paired or scripted animation
 - During a scripted scene, when the game has taken your controls
 - Holding an object with grab or telekinesis
+- While a quest or a scene has turned waiting off
+- Trespassing, or being warned to leave somewhere
 - For 30 seconds after a loading screen, and after loading a save or starting a new game
 - Before the player's surroundings have finished loading in
 - With the inventory, a container, barter, gift, magic, favourites, dialogue, book, crafting,
