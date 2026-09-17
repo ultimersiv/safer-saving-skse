@@ -17,6 +17,13 @@ std::atomic<bool> g_ownsFlag{false};
 static_assert(decltype(g_settleUntil)::is_always_lock_free);
 static_assert(decltype(g_ownsFlag)::is_always_lock_free);
 
+// how stale the flag may get on the sweep path; every player-facing save point forces a refresh
+constexpr auto kSweepInterval = std::chrono::milliseconds{250};
+
+std::atomic<std::chrono::steady_clock::time_point> g_lastSweep{};
+
+static_assert(decltype(g_lastSweep)::is_always_lock_free);
+
 struct Context
 {
     RE::PlayerCharacter& player;
@@ -270,8 +277,21 @@ void SaferSaving::OnGameLoaded()
     BeginSettle();
 }
 
+void SaferSaving::Tick()
+{
+    // the sweep only has to be fresh enough for saves we cannot observe; the rest force a refresh
+    if (std::chrono::steady_clock::now() - g_lastSweep.load(std::memory_order_relaxed) < kSweepInterval)
+    {
+        return;
+    }
+
+    Reevaluate();
+}
+
 void SaferSaving::Reevaluate()
 {
+    g_lastSweep.store(std::chrono::steady_clock::now(), std::memory_order_relaxed);
+
     auto* player = RE::PlayerCharacter::GetSingleton();
     if (!player)
     {

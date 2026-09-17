@@ -10,6 +10,8 @@ void BeginSettle();
 
 void OnGameLoaded();
 
+void Tick();
+
 void Reevaluate();
 
 void NotifyBlockedSaveAttempt();
