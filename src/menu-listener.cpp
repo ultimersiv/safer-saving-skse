@@ -12,6 +12,12 @@ bool IsLoadingMenu(const RE::BSFixedString& a_menuName)
     return strings && a_menuName == strings->loadingMenu;
 }
 
+bool IsJournalMenu(const RE::BSFixedString& a_menuName)
+{
+    const auto* strings = RE::InterfaceStrings::GetSingleton();
+    return strings && a_menuName == strings->journalMenu;
+}
+
 class MenuListener : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
 {
   public:
@@ -35,6 +41,11 @@ class MenuListener : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
             if (SaferSaving::IsMenuInBlockList(a_event->menuName))
             {
                 SaferSaving::BlockForMenu();
+            }
+            else if (IsJournalMenu(a_event->menuName))
+            {
+                // the save tab lives in here and the game is paused, so one evaluation holds
+                SaferSaving::Reevaluate();
             }
 
             return RE::BSEventNotifyControl::kContinue;

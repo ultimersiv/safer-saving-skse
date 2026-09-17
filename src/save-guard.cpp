@@ -17,6 +17,12 @@ std::atomic<bool> g_ownsFlag{false};
 static_assert(decltype(g_settleUntil)::is_always_lock_free);
 static_assert(decltype(g_ownsFlag)::is_always_lock_free);
 
+// how stale the flag may get on the sweep path; every player-facing save point forces a refresh
+constexpr auto kSweepInterval = std::chrono::milliseconds{250};
+
+// frame hook only, so no atomic
+std::chrono::steady_clock::time_point g_lastSweep{};
+
 struct Context
 {
     RE::PlayerCharacter& player;
@@ -77,9 +83,8 @@ const Check kChecks[]{
      },
      "Controls disabled."},
     // quests and scenes switch waiting off while they are mid-something, which is exactly when a save hurts
-    {&Config::waitingDisabled,
-     [](const Context& c) { return c.player.GetPlayerRuntimeData().byCharGenFlag.any(kDisableWaiting); },
-     "Waiting is disabled."},
+    {&Config::waitingDisabled, [](const Context& c)
+     { return c.player.GetPlayerRuntimeData().byCharGenFlag.any(kDisableWaiting); }, "Waiting is disabled."},
     {&Config::grabbing, [](const Context& c) { return c.player.IsGrabbing(); }, "Holding an object."},
     // the rest of vanilla's wait gate; both mean a guard or an owner is about to run a scene at you
     {&Config::trespassing, [](const Context& c) { return c.player.IsTrespassing(); }, "Trespassing."},
@@ -268,6 +273,19 @@ void SaferSaving::OnGameLoaded()
     g_ownsFlag.store(false, std::memory_order_relaxed);
 
     BeginSettle();
+}
+
+void SaferSaving::Tick()
+{
+    // the sweep only has to be fresh enough for saves we cannot observe; the rest force a refresh
+    const auto now = std::chrono::steady_clock::now();
+    if (now - g_lastSweep < kSweepInterval)
+    {
+        return;
+    }
+
+    g_lastSweep = now;
+    Reevaluate();
 }
 
 void SaferSaving::Reevaluate()
