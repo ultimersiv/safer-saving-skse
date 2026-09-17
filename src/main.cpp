@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "autosave-blocker.h"
 #include "config.h"
 #include "input-listener.h"
 #include "menu-listener.h"
@@ -58,12 +59,15 @@ void OnMessage(SKSE::MessagingInterface::Message* a_message)
         case SKSE::MessagingInterface::kDataLoaded:
             SaferSaving::RegisterMenuListener();
             SaferSaving::RegisterInputListener();
+            SaferSaving::ApplyAutosaveBlock();
             break;
         case SKSE::MessagingInterface::kPostLoadGame:
             SaferSaving::OnGameLoaded();
+            SaferSaving::ApplyAutosaveBlock();
             break;
         case SKSE::MessagingInterface::kNewGame:
             SaferSaving::BeginSettle();
+            SaferSaving::ApplyAutosaveBlock();
             break;
         default:
             break;

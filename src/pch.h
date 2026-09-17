@@ -5,6 +5,7 @@
 #include <SKSE/SKSE.h>
 
 #include <REX/REX/INI.h>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <format>
