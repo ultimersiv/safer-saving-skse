@@ -83,9 +83,8 @@ const Check kChecks[]{
      },
      "Controls disabled."},
     // quests and scenes switch waiting off while they are mid-something, which is exactly when a save hurts
-    {&Config::waitingDisabled,
-     [](const Context& c) { return c.player.GetPlayerRuntimeData().byCharGenFlag.any(kDisableWaiting); },
-     "Waiting is disabled."},
+    {&Config::waitingDisabled, [](const Context& c)
+     { return c.player.GetPlayerRuntimeData().byCharGenFlag.any(kDisableWaiting); }, "Waiting is disabled."},
     {&Config::grabbing, [](const Context& c) { return c.player.IsGrabbing(); }, "Holding an object."},
     // the rest of vanilla's wait gate; both mean a guard or an owner is about to run a scene at you
     {&Config::trespassing, [](const Context& c) { return c.player.IsTrespassing(); }, "Trespassing."},
