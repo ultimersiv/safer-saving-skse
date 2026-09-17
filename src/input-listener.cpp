@@ -6,24 +6,6 @@
 
 namespace
 {
-bool IsQuicksavePress(const RE::InputEvent& a_event)
-{
-    if (a_event.GetEventType() != RE::INPUT_EVENT_TYPE::kButton)
-    {
-        return false;
-    }
-
-    // press edge only, so holding the key does not spam
-    const auto* button = a_event.AsButtonEvent();
-    if (!button || !button->IsDown())
-    {
-        return false;
-    }
-
-    const auto* userEvents = RE::UserEvents::GetSingleton();
-    return userEvents && a_event.QUserEvent() == userEvents->quicksave;
-}
-
 class InputListener : public RE::BSTEventSink<RE::InputEvent*>
 {
   public:
@@ -44,7 +26,7 @@ class InputListener : public RE::BSTEventSink<RE::InputEvent*>
         // events come as a linked list
         for (const auto* event = *a_event; event; event = event->next)
         {
-            if (IsQuicksavePress(*event))
+            if (SaferSaving::IsQuicksavePress(*event))
             {
                 SaferSaving::NotifyBlockedSaveAttempt();
                 break;
@@ -65,6 +47,24 @@ class InputListener : public RE::BSTEventSink<RE::InputEvent*>
     InputListener& operator=(InputListener&&)      = delete;
 };
 } // namespace
+
+bool SaferSaving::IsQuicksavePress(const RE::InputEvent& a_event)
+{
+    if (a_event.GetEventType() != RE::INPUT_EVENT_TYPE::kButton)
+    {
+        return false;
+    }
+
+    // press edge only, so holding the key does not spam
+    const auto* button = a_event.AsButtonEvent();
+    if (!button || !button->IsDown())
+    {
+        return false;
+    }
+
+    const auto* userEvents = RE::UserEvents::GetSingleton();
+    return userEvents && a_event.QUserEvent() == userEvents->quicksave;
+}
 
 void SaferSaving::RegisterInputListener()
 {

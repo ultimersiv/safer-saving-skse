@@ -22,13 +22,12 @@ struct QuickSaveCanProcess
 {
     static bool thunk(RE::MenuEventHandler* a_handler, RE::InputEvent* a_event)
     {
-        const bool handled = func(a_handler, a_event);
-        if (handled)
+        // refresh before the original so it holds whether the flag is read here or in ProcessButton
+        if (a_event && SaferSaving::IsQuicksavePress(*a_event))
         {
-            // the game reads kDisableSaving right after this, so the throttled sweep is not fresh enough
             SaferSaving::Reevaluate();
         }
-        return handled;
+        return func(a_handler, a_event);
     }
 
     static inline REL::Relocation<decltype(thunk)> func;
