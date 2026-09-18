@@ -8,6 +8,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <format>
 #include <memory>
 #include <string>
