@@ -39,6 +39,19 @@ silent, so nothing appears unless you asked to save. Turn the messages off with
 `[Notification] bEnabled = false`. The "Cannot save:" lead-in is `[Notification] sPrefix`; a space
 before the reason is added for you, and leaving it blank shows the reason on its own.
 
+## Turning off vanilla autosaves
+
+The game stops making saves on its own: on pause, on fast travel, on waiting, on resting, and the
+ones quests and mods ask for through scripts. Nothing replaces them, so the only saves you have are
+the ones you make yourself — get into the habit of a manual save when you stop somewhere quiet. Set
+`[Autosave] bDisableVanilla = false` to leave the game to its usual autosaves.
+
+Four of the switches this changes (`bSaveOnPause`, `bSaveOnTravel`, `bSaveOnWait`, `bSaveOnRest`)
+are the same four in the game's own Settings, Gameplay menu. They are put back every time you close
+the journal, so changing them in-game will not stick while this is on. They live in
+`SkyrimPrefs.ini`, which the game writes out itself, so turning the setting off again may not
+restore them. Vanilla has all four on, if you need to put them back by hand.
+
 ## Requirements
 
 [SKSE](https://skse.silverlock.org/)
@@ -67,6 +80,9 @@ bAnimationDriven = false   # allows saving while seated
 
 [Load]
 iSettleSeconds = 10
+
+[Autosave]
+bDisableVanilla = false    # keeps the game's own autosaves
 ```
 
 Anything you leave out keeps its default.

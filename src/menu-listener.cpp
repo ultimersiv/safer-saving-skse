@@ -2,6 +2,7 @@
 
 #include "pch.h"
 
+#include "autosave-blocker.h"
 #include "save-guard.h"
 
 namespace
@@ -54,11 +55,16 @@ class MenuListener : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
         if (IsLoadingMenu(a_event->menuName))
         {
             SaferSaving::BeginSettle();
+            return RE::BSEventNotifyControl::kContinue;
         }
-        else
+
+        // the settings tab is the only way the player can turn the vanilla autosaves back on
+        if (IsJournalMenu(a_event->menuName))
         {
-            SaferSaving::Reevaluate();
+            SaferSaving::ApplyAutosaveBlock();
         }
+
+        SaferSaving::Reevaluate();
 
         return RE::BSEventNotifyControl::kContinue;
     }

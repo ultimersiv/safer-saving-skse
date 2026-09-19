@@ -10,6 +10,9 @@ inline REX::INI::Str<> messagePrefix{"Notification", "sPrefix", "Cannot save:"};
 
 inline REX::INI::I32<> settleSeconds{"Load", "iSettleSeconds", 30}; // zero disables the wait
 
+// on by default; nothing replaces the autosaves it removes
+inline REX::INI::Bool<> disableVanillaAutosaves{"Autosave", "bDisableVanilla", true};
+
 inline REX::INI::Bool<> inCombat{"Combat", "bInCombat", true};
 inline REX::INI::Bool<> attacking{"Combat", "bAttacking", true};
 inline REX::INI::Bool<> weaponDrawn{"Combat", "bWeaponDrawn", true};
