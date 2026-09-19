@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cstring>
 #include <ctime>
+#include <filesystem>
 #include <format>
 #include <memory>
 #include <string>

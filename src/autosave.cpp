@@ -181,6 +181,54 @@ std::uint32_t FindNewestSlot()
     return newestTime != 0 ? newestSlot : highestSlot;
 }
 
+// PrepareFileSavePath resolves SLocalSavePath and any profile folder under it, so ask the engine
+// where saves go rather than rebuilding the path; empty means pruning is skipped
+const std::filesystem::path& SaveDirectory()
+{
+    static const std::filesystem::path directory = []
+    {
+        auto* utility = RE::BSWin32SaveDataSystemUtility::GetSingleton();
+        if (!utility)
+        {
+            return std::filesystem::path{};
+        }
+
+        // only the folder is wanted, so the name given here does not matter
+        char resolved[0x104]{};
+        if (utility->PrepareFileSavePath("SaferSaving", resolved, false, false) != 0)
+        {
+            return std::filesystem::path{};
+        }
+
+        return std::filesystem::path{resolved}.parent_path();
+    }();
+
+    return directory;
+}
+
+// the name carries a timestamp, so the engine never overwrites a slot in place; keeping one file
+// per slot is ours to do, and the prefix scopes it to this slot of this character
+void PruneSlot(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manager)
+{
+    const auto& directory = SaveDirectory();
+    if (directory.empty())
+    {
+        return;
+    }
+
+    const auto prefix = std::format("{}{}_{:08X}_", kNamePrefix, kSlotBase + a_slot, a_manager.currentCharacterID);
+
+    std::error_code ec;
+    for (const auto& item : std::filesystem::directory_iterator{directory, ec})
+    {
+        // catches the skse co-save and the bak copy alongside the ess
+        if (item.path().filename().string().starts_with(prefix))
+        {
+            std::filesystem::remove(item.path(), ec);
+        }
+    }
+}
+
 // whether the engine itself would take a save; Save_Impl fails silently otherwise
 bool CanDispatch(RE::PlayerCharacter* a_player)
 {
@@ -229,7 +277,11 @@ void Write(std::uint32_t a_generation)
         return;
     }
 
-    const auto name = SlotName(TakeNextSlot(), *manager, *player);
+    const auto slot = TakeNextSlot();
+    const auto name = SlotName(slot, *manager, *player);
+
+    PruneSlot(slot, *manager);
+
     SaferSaving::ShowNotification(kNotification);
     manager->Save(name.c_str());
 }

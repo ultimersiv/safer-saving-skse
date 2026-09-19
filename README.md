@@ -52,7 +52,8 @@ blocked, the save is not skipped: it waits and happens at the next safe moment, 
 takes. Any save you make yourself restarts the interval. `[Autosave] iIntervalMinutes` changes the
 interval, `0` turns it off, and `[Autosave] iSlots` sets how many slots it rotates through. The
 saves show in the load menu as autosaves of the current character, numbered from 1001, so vanilla
-autosaves and your own saves are never touched.
+autosaves and your own saves are never touched. The file sitting in a slot is deleted as that slot
+comes round again, so the count stays at `iSlots` per character.
 
 Four of the switches this changes (`bSaveOnPause`, `bSaveOnTravel`, `bSaveOnWait`, `bSaveOnRest`)
 are the same four in the game's own Settings, Gameplay menu. They are put back every time you close
