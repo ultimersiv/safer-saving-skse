@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "autosave-blocker.h"
+#include "autosave.h"
 #include "config.h"
 #include "input-listener.h"
 #include "menu-listener.h"
@@ -14,6 +15,7 @@ struct PlayerUpdate
     {
         func(a_player, a_delta);
         SaferSaving::Tick();
+        SaferSaving::AutoSave::Tick();
     }
 
     static inline REL::Relocation<decltype(thunk)> func;
@@ -64,10 +66,15 @@ void OnMessage(SKSE::MessagingInterface::Message* a_message)
         case SKSE::MessagingInterface::kPostLoadGame:
             SaferSaving::OnGameLoaded();
             SaferSaving::ApplyAutosaveBlock();
+            SaferSaving::AutoSave::OnGameLoaded();
             break;
         case SKSE::MessagingInterface::kNewGame:
             SaferSaving::BeginSettle();
             SaferSaving::ApplyAutosaveBlock();
+            SaferSaving::AutoSave::OnGameLoaded();
+            break;
+        case SKSE::MessagingInterface::kSaveGame:
+            SaferSaving::AutoSave::OnSaved();
             break;
         default:
             break;
@@ -79,6 +86,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
     SKSE::Init(a_skse);
     SaferSaving::Config::Load();
+    SaferSaving::AutoSave::Init();
     InstallHooks();
     if (!SKSE::GetMessagingInterface()->RegisterListener(OnMessage))
     {
