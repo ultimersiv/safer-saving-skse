@@ -69,26 +69,9 @@ RE::Setting* Resolve(std::string_view a_key)
     return FindByKey(RE::INISettingCollection::GetSingleton(), a_key);
 }
 
-std::size_t CountSettings(RE::INISettingCollection* a_collection)
-{
-    if (!a_collection)
-    {
-        return 0;
-    }
-
-    std::size_t count = 0;
-    for ([[maybe_unused]] auto* setting : a_collection->settings)
-    {
-        ++count;
-    }
-
-    return count;
-}
-
 std::array<RE::Setting*, kCount> ResolveAll()
 {
     std::array<RE::Setting*, kCount> resolved{};
-    bool missing = false;
 
     for (std::size_t i = 0; i < kCount; ++i)
     {
@@ -96,7 +79,6 @@ std::array<RE::Setting*, kCount> ResolveAll()
         if (!setting)
         {
             logs::warn("autosave setting {} not found; leaving it alone", kOverrides[i].key);
-            missing = true;
             continue;
         }
 
@@ -104,22 +86,10 @@ std::array<RE::Setting*, kCount> ResolveAll()
         if (setting->GetType() != RE::Setting::Type::kBool)
         {
             logs::warn("autosave setting {} is not a bool; leaving it alone", setting->GetName());
-            missing = true;
             continue;
         }
 
         resolved[i] = setting;
-
-        // the full name carries the section, and the value is logged before the first write so the
-        // player can put their own back by hand
-        logs::info("autosave setting {} was {}", setting->GetName(), setting->GetBool());
-    }
-
-    if (missing)
-    {
-        logs::warn("searched {} pref settings and {} ini settings",
-                   CountSettings(RE::INIPrefSettingCollection::GetSingleton()),
-                   CountSettings(RE::INISettingCollection::GetSingleton()));
     }
 
     return resolved;

@@ -50,7 +50,7 @@ Four of the switches this changes (`bSaveOnPause`, `bSaveOnTravel`, `bSaveOnWait
 are the same four in the game's own Settings, Gameplay menu. They are put back every time you close
 the journal, so changing them in-game will not stick while this is on. They live in
 `SkyrimPrefs.ini`, which the game writes out itself, so turning the setting off again may not
-restore them; your original values are written to the log the first time the mod runs.
+restore them. Vanilla has all four on, if you need to put them back by hand.
 
 ## Requirements
 
