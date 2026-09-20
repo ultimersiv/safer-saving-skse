@@ -14,15 +14,13 @@ struct Override
     bool value;
 };
 
-// the engine's own autosave gates
+// the engine's own autosave gates; nothing here touches saves a script asks for
 constexpr Override kOverrides[]{
-    {"bDisableAutoSave", true},         // master switch, may be vestigial
-    {"bAllowScriptedAutosave", false},  // Game.RequestAutoSave()
-    {"bAllowScriptedForceSave", false}, // Game.RequestSave()
-    {"bSaveOnPause", false},            // the four below are the ones in Settings > Gameplay
-    {"bSaveOnTravel", false},           //
-    {"bSaveOnWait", false},             //
-    {"bSaveOnRest", false},             //
+    {"bDisableAutoSave", true}, // master switch, may be vestigial
+    {"bSaveOnPause", false},    // these four are the ones in Settings > Gameplay
+    {"bSaveOnTravel", false},   //
+    {"bSaveOnWait", false},     //
+    {"bSaveOnRest", false},     //
 };
 
 constexpr auto kCount = std::size(kOverrides);
