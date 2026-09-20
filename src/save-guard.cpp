@@ -218,6 +218,13 @@ void AllowSaving(RE::PlayerCharacter* a_player)
     flags.reset(kDisableSaving);
     g_ownsFlag.store(false, std::memory_order_relaxed);
 }
+
+// AllowSaving never clears a flag it does not own, so a flag with no reason of ours came elsewhere
+bool BlockedByOther(RE::PlayerCharacter* a_player)
+{
+    return !g_ownsFlag.load(std::memory_order_relaxed) &&
+           a_player->GetPlayerRuntimeData().byCharGenFlag.any(kDisableSaving);
+}
 } // namespace
 
 bool SaferSaving::IsMenuInBlockList(const RE::BSFixedString& a_menuName)
@@ -307,11 +314,16 @@ void SaferSaving::NotifyBlockedSaveAttempt()
         return;
     }
 
-    // another mod's flag is not ours to explain
     const auto* reason = GetBlockReason(player);
     if (!reason)
     {
-        return;
+        // vague on purpose: the flag cannot tell a mod from the engine, and other blockers are invisible
+        if (!BlockedByOther(player))
+        {
+            return;
+        }
+
+        reason = "Blocked by something else.";
     }
 
     const auto prefix = Config::messagePrefix.GetValue();
