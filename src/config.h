@@ -37,9 +37,7 @@ inline REX::INI::Bool<> sitSleepTransition{"State", "bSitSleepTransition", true}
 inline REX::INI::Bool<> animationDriven{"State", "bAnimationDriven", true};
 inline REX::INI::Bool<> grabbing{"State", "bGrabbing", true};
 inline REX::INI::Bool<> controlsDisabled{"State", "bControlsDisabled", true};
-inline REX::INI::Bool<> waitingDisabled{"State", "bWaitingDisabled", true};
 inline REX::INI::Bool<> trespassing{"State", "bTrespassing", true};
-inline REX::INI::Bool<> warnedToLeave{"State", "bWarnedToLeave", true};
 inline REX::INI::Bool<> notLoaded{"State", "b3DNotLoaded", true};
 
 inline REX::INI::Bool<> itemMenus{"Menus", "bItemMenus", true};
