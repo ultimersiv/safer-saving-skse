@@ -60,6 +60,27 @@ the journal, so changing them in-game will not stick while this is on. They live
 `SkyrimPrefs.ini`, which the game writes out itself, so turning the setting off again may not
 restore them. Vanilla has all four on, if you need to put them back by hand.
 
+## Keeping the save folder down
+
+Skyrim does not cope well with a folder full of saves, and manual saves are the ones that pile up:
+the quicksave is a single file, the autosaves rotate, and `Save1`, `Save2`, `Save3` go on forever.
+`[Saves] iMaxManualSaves` puts a ceiling on them. It is `0` by default, which keeps every save and
+leaves the folder alone.
+
+Set it to a number and each manual save you make trims the oldest beyond that count, for the
+character you are playing. Quicksaves, autosaves, and every other character are never counted and
+never touched, and neither is a save made from the console under a name of your own. Order comes
+from the timestamp the game writes into the file name, not from the file's date on disk, so copying
+your saves about or reinstalling cannot confuse which is oldest.
+
+Deleted saves go to the Recycle Bin, together with their `.skse` co-saves, so a cull you did not
+want can be put back from there. Two things are out of the mod's hands: a drive with the Recycle
+Bin turned off, and a file bigger than the bin's quota. Windows deletes outright in both cases.
+
+The trim only runs when you make a manual save. Turn the setting on with a folder already over the
+count and nothing happens until your next manual save, which then takes it down to the limit in one
+go.
+
 ## Requirements
 
 [SKSE](https://skse.silverlock.org/)
@@ -92,6 +113,9 @@ iSettleSeconds = 10
 [Autosave]
 bDisableVanilla = false    # keeps the game's own autosaves
 iIntervalMinutes = 30      # save every 30 minutes instead of 15
+
+[Saves]
+iMaxManualSaves = 20       # keeps 20 manual saves per character, the rest to the Recycle Bin
 ```
 
 Anything you leave out keeps its default.

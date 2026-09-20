@@ -4,11 +4,13 @@
 
 #include "config.h"
 #include "notification.h"
+#include "save-files.h"
 #include "save-guard.h"
 
 namespace
 {
-namespace Config = SaferSaving::Config;
+namespace Config    = SaferSaving::Config;
+namespace SaveFiles = SaferSaving::SaveFiles;
 
 constexpr auto kDisableSaving = RE::PlayerCharacter::ByCharGenFlag::kDisableSaving;
 constexpr const char* kNotification{"Autosaving..."};
@@ -118,11 +120,6 @@ std::string SlotName(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manag
                        LocationName(a_player), PlayMinutes(a_player), TimeStamp(), a_player.GetLevel());
 }
 
-std::string OwnId(const RE::BGSSaveLoadManager& a_manager)
-{
-    return std::format("_{:08X}_", a_manager.currentCharacterID);
-}
-
 // which slot a file belongs to for this character, or zero; seeding and pruning share it so they
 // can never disagree about what counts as ours
 std::uint32_t SlotOf(std::string_view a_name, std::string_view a_ownId)
@@ -144,36 +141,16 @@ std::uint32_t SlotOf(std::string_view a_name, std::string_view a_ownId)
     return rest.starts_with(a_ownId) ? number - kSlotBase : 0;
 }
 
-// PrepareFileSavePath resolves SLocalSavePath and any profile folder under it; a miss is not cached
-const std::filesystem::path& SaveDirectory()
-{
-    static std::filesystem::path directory;
-    if (!directory.empty())
-    {
-        return directory;
-    }
-
-    // only the folder is wanted, so the name given here does not matter
-    char resolved[0x104]{};
-    auto* utility = RE::BSWin32SaveDataSystemUtility::GetSingleton();
-    if (utility && utility->PrepareFileSavePath("SaferSaving", resolved, false, false) == 0)
-    {
-        directory = std::filesystem::path{resolved}.parent_path();
-    }
-
-    return directory;
-}
-
 // by file time, because the engine save list is not reliably populated when a game has loaded
 std::uint32_t NewestSlotOnDisk(const RE::BGSSaveLoadManager& a_manager)
 {
-    const auto& directory = SaveDirectory();
+    const auto& directory = SaveFiles::Directory();
     if (directory.empty())
     {
         return 0;
     }
 
-    const auto ownId = OwnId(a_manager);
+    const auto ownId = SaveFiles::OwnId(a_manager);
 
     std::uint32_t newestSlot = 0;
     std::filesystem::file_time_type newestTime{};
@@ -221,13 +198,13 @@ std::uint32_t TakeNextSlot(const RE::BGSSaveLoadManager& a_manager)
 // the timestamp in the name means the engine never overwrites a slot, so old files are ours to clear
 void PruneSlot(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manager)
 {
-    const auto& directory = SaveDirectory();
+    const auto& directory = SaveFiles::Directory();
     if (directory.empty())
     {
         return;
     }
 
-    const auto ownId = OwnId(a_manager);
+    const auto ownId = SaveFiles::OwnId(a_manager);
 
     std::error_code ec;
     for (const auto& item : std::filesystem::directory_iterator{directory, ec})

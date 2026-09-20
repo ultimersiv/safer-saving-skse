@@ -25,6 +25,7 @@ target("SaferSaving")
     add_files("src/**.cpp")
     add_headerfiles("src/**.h")
     add_includedirs("src")
+    add_syslinks("shell32")
     set_pcxxheader("src/pch.h")
 
     add_installfiles("release/SaferSaving.ini", {prefixdir = "SKSE/Plugins"})

@@ -15,6 +15,9 @@ inline REX::INI::Bool<> disableVanillaAutosaves{"Autosave", "bDisableVanilla", t
 inline REX::INI::I32<> autoSaveMinutes{"Autosave", "iIntervalMinutes", 15}; // zero turns it off
 inline REX::INI::I32<> autoSaveSlots{"Autosave", "iSlots", 5};
 
+// zero keeps every save; only manual saves are counted
+inline REX::INI::I32<> maxManualSaves{"Saves", "iMaxManualSaves", 0};
+
 inline REX::INI::Bool<> inCombat{"Combat", "bInCombat", true};
 inline REX::INI::Bool<> attacking{"Combat", "bAttacking", true};
 inline REX::INI::Bool<> weaponDrawn{"Combat", "bWeaponDrawn", true};

@@ -6,6 +6,7 @@
 #include "input-listener.h"
 #include "menu-listener.h"
 #include "save-guard.h"
+#include "save-prune.h"
 
 namespace
 {
@@ -49,6 +50,13 @@ void InstallHooks()
     QuickSaveCanProcess::func = quickSave.write_vfunc(0x1, QuickSaveCanProcess::thunk);
 }
 
+// kSaveGame carries the name of the save, null terminated
+std::string_view SavedName(const SKSE::MessagingInterface::Message& a_message)
+{
+    const auto* name = static_cast<const char*>(a_message.data);
+    return name ? std::string_view{name} : std::string_view{};
+}
+
 void OnMessage(SKSE::MessagingInterface::Message* a_message)
 {
     if (!a_message)
@@ -67,14 +75,17 @@ void OnMessage(SKSE::MessagingInterface::Message* a_message)
             SaferSaving::OnGameLoaded();
             SaferSaving::ApplyAutosaveBlock();
             SaferSaving::AutoSave::OnGameLoaded();
+            SaferSaving::SavePrune::OnGameLoaded();
             break;
         case SKSE::MessagingInterface::kNewGame:
             SaferSaving::BeginSettle();
             SaferSaving::ApplyAutosaveBlock();
             SaferSaving::AutoSave::OnGameLoaded();
+            SaferSaving::SavePrune::OnGameLoaded();
             break;
         case SKSE::MessagingInterface::kSaveGame:
             SaferSaving::AutoSave::OnSaved();
+            SaferSaving::SavePrune::OnSaved(SavedName(*a_message));
             break;
         default:
             break;
@@ -87,6 +98,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
     SKSE::Init(a_skse);
     SaferSaving::Config::Load();
     SaferSaving::AutoSave::Init();
+    SaferSaving::SavePrune::Init();
     InstallHooks();
     if (!SKSE::GetMessagingInterface()->RegisterListener(OnMessage))
     {
