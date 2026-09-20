@@ -10,8 +10,10 @@ inline REX::INI::Str<> messagePrefix{"Notification", "sPrefix", "Cannot save:"};
 
 inline REX::INI::I32<> settleSeconds{"Load", "iSettleSeconds", 30}; // zero disables the wait
 
-// on by default; nothing replaces the autosaves it removes
+// on by default; the deferred autosave below replaces what it removes
 inline REX::INI::Bool<> disableVanillaAutosaves{"Autosave", "bDisableVanilla", true};
+inline REX::INI::I32<> autoSaveMinutes{"Autosave", "iIntervalMinutes", 15}; // zero turns it off
+inline REX::INI::I32<> autoSaveSlots{"Autosave", "iSlots", 5};
 
 inline REX::INI::Bool<> inCombat{"Combat", "bInCombat", true};
 inline REX::INI::Bool<> attacking{"Combat", "bAttacking", true};
@@ -35,9 +37,7 @@ inline REX::INI::Bool<> sitSleepTransition{"State", "bSitSleepTransition", true}
 inline REX::INI::Bool<> animationDriven{"State", "bAnimationDriven", true};
 inline REX::INI::Bool<> grabbing{"State", "bGrabbing", true};
 inline REX::INI::Bool<> controlsDisabled{"State", "bControlsDisabled", true};
-inline REX::INI::Bool<> waitingDisabled{"State", "bWaitingDisabled", true};
 inline REX::INI::Bool<> trespassing{"State", "bTrespassing", true};
-inline REX::INI::Bool<> warnedToLeave{"State", "bWarnedToLeave", true};
 inline REX::INI::Bool<> notLoaded{"State", "b3DNotLoaded", true};
 
 inline REX::INI::Bool<> itemMenus{"Menus", "bItemMenus", true};

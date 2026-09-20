@@ -21,8 +21,7 @@ This mod tries to minimize the chances of that happening for longer running play
 - In a paired or scripted animation
 - During a scripted scene, when the game has taken your controls
 - Holding an object with grab or telekinesis
-- While a quest or a scene has turned waiting off
-- Trespassing, or being warned to leave somewhere
+- Trespassing
 - For 30 seconds after a loading screen, and after loading a save or starting a new game
 - Before the player's surroundings have finished loading in
 - With the inventory, a container, barter, gift, magic, favourites, dialogue, book, crafting,
@@ -39,12 +38,21 @@ silent, so nothing appears unless you asked to save. Turn the messages off with
 `[Notification] bEnabled = false`. The "Cannot save:" lead-in is `[Notification] sPrefix`; a space
 before the reason is added for you, and leaving it blank shows the reason on its own.
 
-## Turning off vanilla autosaves
+## Autosaves
 
 The game stops making saves on its own: on pause, on fast travel, on waiting, on resting, and the
-ones quests and mods ask for through scripts. Nothing replaces them, so the only saves you have are
-the ones you make yourself — get into the habit of a manual save when you stop somewhere quiet. Set
+ones quests and mods ask for through scripts. In their place the mod takes its own save every
+15 minutes of play, and only when saving is safe by the checks above. Set
 `[Autosave] bDisableVanilla = false` to leave the game to its usual autosaves.
+
+Only time the game is actually running counts toward the interval — it does not tick while paused,
+in a menu that pauses the game, or on a loading screen. If the interval runs out while saving is
+blocked, the save is not skipped: it waits and happens at the next safe moment, however long that
+takes. Any save you make yourself restarts the interval. `[Autosave] iIntervalMinutes` changes the
+interval, `0` turns it off, and `[Autosave] iSlots` sets how many slots it rotates through. The
+saves show in the load menu as autosaves of the current character, numbered from 101, so vanilla
+autosaves and your own saves are never touched. The file sitting in a slot is deleted as that slot
+comes round again, so the count stays at `iSlots` per character.
 
 Four of the switches this changes (`bSaveOnPause`, `bSaveOnTravel`, `bSaveOnWait`, `bSaveOnRest`)
 are the same four in the game's own Settings, Gameplay menu. They are put back every time you close
@@ -83,6 +91,7 @@ iSettleSeconds = 10
 
 [Autosave]
 bDisableVanilla = false    # keeps the game's own autosaves
+iIntervalMinutes = 30      # save every 30 minutes instead of 15
 ```
 
 Anything you leave out keeps its default.
