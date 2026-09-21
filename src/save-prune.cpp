@@ -104,30 +104,26 @@ std::optional<std::uint64_t> StampOf(std::string_view a_stem)
 // leaves one order over the whole set
 std::uint64_t StampFromFileTime(const std::filesystem::path& a_path)
 {
-    using Ticks = std::chrono::system_clock::duration;
-
-    std::error_code ec;
-    const auto written = std::filesystem::last_write_time(a_path, ec);
-    if (ec)
+    WIN32_FILE_ATTRIBUTE_DATA attributes{};
+    if (!GetFileAttributesExW(a_path.c_str(), GetFileExInfoStandard, &attributes))
     {
         return 0;
     }
 
-    const auto sys  = std::chrono::time_point_cast<Ticks>(std::chrono::file_clock::to_sys(written));
-    const auto time = std::chrono::system_clock::to_time_t(sys);
-
-    std::tm local{};
-    if (localtime_s(&local, &time) != 0)
+    // local time, to sit on the same scale as the stamp the engine writes into the name
+    FILETIME local{};
+    SYSTEMTIME time{};
+    if (!FileTimeToLocalFileTime(&attributes.ftLastWriteTime, &local) || !FileTimeToSystemTime(&local, &time))
     {
         return 0;
     }
 
-    std::uint64_t stamp = static_cast<std::uint64_t>(local.tm_year) + 1900;
-    stamp               = stamp * 100 + static_cast<std::uint64_t>(local.tm_mon) + 1;
-    stamp               = stamp * 100 + static_cast<std::uint64_t>(local.tm_mday);
-    stamp               = stamp * 100 + static_cast<std::uint64_t>(local.tm_hour);
-    stamp               = stamp * 100 + static_cast<std::uint64_t>(local.tm_min);
-    stamp               = stamp * 100 + static_cast<std::uint64_t>(local.tm_sec);
+    std::uint64_t stamp = time.wYear;
+    stamp               = stamp * 100 + time.wMonth;
+    stamp               = stamp * 100 + time.wDay;
+    stamp               = stamp * 100 + time.wHour;
+    stamp               = stamp * 100 + time.wMinute;
+    stamp               = stamp * 100 + time.wSecond;
     return stamp;
 }
 
