@@ -40,8 +40,7 @@ before the reason is added for you, and leaving it blank shows the reason on its
 
 ## Autosaves
 
-The game stops making saves on its own: on pause, on fast travel, on waiting, on resting, and the
-ones quests and mods ask for through scripts. In their place the mod takes its own save every
+The default configuration disables all vanilla autosaves. In their place the mod takes its own save every
 15 minutes of play, and only when saving is safe by the checks above. Set
 `[Autosave] bDisableVanilla = false` to leave the game to its usual autosaves.
 
