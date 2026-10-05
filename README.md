@@ -60,6 +60,16 @@ the journal, so changing them in-game will not stick while this is on. They live
 `SkyrimPrefs.ini`, which the game writes out itself, so turning the setting off again may not
 restore them. Vanilla has all four on, if you need to put them back by hand.
 
+## Old saves
+
+Manual saves pile up. The quicksave is one file and autosaves rotate, but `Save1`, `Save2`, `Save3`
+keep going. Set `[Saves] iMaxManualSaves` to keep only that many per character. Every manual save
+then moves the oldest past the limit to the Recycle Bin, along with their `.skse` co-saves.
+Quicksaves, autosaves and other characters are never touched. The default of `0` keeps everything.
+
+If you already have more than the limit, the extras go at your next manual save. Windows deletes
+them outright instead if the Recycle Bin is turned off for that drive or a file is too big for it.
+
 ## Requirements
 
 [SKSE](https://skse.silverlock.org/)
@@ -92,6 +102,9 @@ iSettleSeconds = 10
 [Autosave]
 bDisableVanilla = false    # keeps the game's own autosaves
 iIntervalMinutes = 30      # save every 30 minutes instead of 15
+
+[Saves]
+iMaxManualSaves = 20       # keeps the newest 20 manual saves per character
 ```
 
 Anything you leave out keeps its default.
