@@ -3,6 +3,7 @@ set_xmakever("3.0.0")
 includes("lib/commonlibsse-ng")
 
 set_config("rex_ini", true)
+add_requires("doctest 2.5.3")
 
 set_project("SaferSaving")
 set_version("1.0.0")
@@ -30,3 +31,11 @@ target("SaferSaving")
 
     add_installfiles("release/SaferSaving.ini", {prefixdir = "SKSE/Plugins"})
     add_installfiles("LICENSE")
+
+target("tests")
+    set_kind("binary")
+    set_default(false)
+    add_files("tests/*.cpp", "src/ini-overrides.cpp")
+    add_includedirs("src")
+    add_packages("simpleini", "doctest")
+    add_tests("default")
