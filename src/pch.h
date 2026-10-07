@@ -14,8 +14,13 @@
 #include <ctime>
 #include <filesystem>
 #include <format>
+#include <functional>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
+#include <vector>
 
 namespace logs = SKSE::log;
