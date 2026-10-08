@@ -92,9 +92,10 @@ TEST_CASE("full-line comments on untouched keys survive")
 
 TEST_CASE("a batch applies every set and delete")
 {
-    const Parsed ini{Run("[Combat]\nbInCombat = false\n[Movement]\nbSneaking = false\n",
-                         {{"Combat", "bInCombat", std::nullopt}, {"Movement", "bMoving", "false"},
-                          {"Movement", "bSneaking", std::nullopt}})};
+    const Parsed ini{
+        Run("[Combat]\nbInCombat = false\n[Movement]\nbSneaking = false\n", {{"Combat", "bInCombat", std::nullopt},
+                                                                             {"Movement", "bMoving", "false"},
+                                                                             {"Movement", "bSneaking", std::nullopt}})};
     CHECK_FALSE(ini.HasSection("Combat"));
     CHECK(ini.Value("Movement", "bMoving") == "false");
     CHECK_FALSE(ini.Value("Movement", "bSneaking").has_value());
