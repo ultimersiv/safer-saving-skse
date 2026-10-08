@@ -122,7 +122,7 @@ is also in the Mod Control Panel under Safer Saving. The General page has the no
 autosaves and old saves; the Checks page has every check. Changes take effect at once, with no restart, and are
 saved to `SaferSaving_custom.ini` so they are still there next time. A setting put back to its default is taken out
 of that file again. Saving from the menu rewrites the whole file, which drops comments at its very end and any line
-it cannot read, so the file as it was before your first change each session is kept as SaferSaving_custom.ini.bak.
+it cannot read, so the file as it was before your first change each session is kept as `SaferSaving_custom.ini.bak`.
 Each page has a Reset to defaults button for its own settings.
 
 The menu is optional. Without the framework the mod works the same, and the ini is the way to change it.

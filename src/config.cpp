@@ -45,8 +45,9 @@ bool SaferSaving::Config::Persist(std::span<Entry* const> a_entries)
             logs::error("could not read {}", kUserFile);
             return false;
         }
-        text.assign(std::istreambuf_iterator<char>{in}, std::istreambuf_iterator<char>{});
-        if (in.bad())
+        const auto size = std::filesystem::file_size(kUserFile, ec);
+        text.resize(ec ? 0 : size);
+        if (ec || !in.read(text.data(), static_cast<std::streamsize>(text.size())))
         {
             logs::error("could not read {}", kUserFile);
             return false;
