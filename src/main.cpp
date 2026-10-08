@@ -95,8 +95,8 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
     SKSE::Init(a_skse);
     SaferSaving::Config::Load();
-    SaferSaving::AutoSave::Init();
-    SaferSaving::SavePrune::Init();
+    SaferSaving::AutoSave::Configure();
+    SaferSaving::SavePrune::Configure();
     InstallHooks();
     if (!SKSE::GetMessagingInterface()->RegisterListener(OnMessage))
     {

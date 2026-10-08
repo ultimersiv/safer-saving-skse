@@ -2,8 +2,8 @@
 
 namespace SaferSaving::AutoSave
 {
-// reads the ini once, before the first frame
-void Init();
+// reads the ini; call again whenever a setting changes
+void Configure();
 
 // restarts the interval and reseeds the slot
 void OnGameLoaded();

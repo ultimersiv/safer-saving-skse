@@ -13,6 +13,7 @@ namespace SaveFiles = SaferSaving::SaveFiles;
 constexpr std::string_view kPrefix{"Save"};
 constexpr std::size_t kStampDigits{14};
 
+// main thread only; the prune thread gets its own copy
 std::uint32_t g_max{0};
 std::mutex g_pruning;
 
@@ -81,7 +82,7 @@ std::vector<std::filesystem::path> FilesOf(const std::filesystem::path& a_direct
 }
 
 // recycling a few hundred files can take seconds, so this runs on its own thread
-void Prune(std::filesystem::path a_directory, std::string a_ownId, std::string a_newest)
+void Prune(std::filesystem::path a_directory, std::string a_ownId, std::string a_newest, std::size_t a_keep)
 {
     const std::scoped_lock lock{g_pruning};
 
@@ -105,8 +106,7 @@ void Prune(std::filesystem::path a_directory, std::string a_ownId, std::string a
         }
     }
 
-    const std::size_t keep = g_max - 1;
-    if (saves.size() <= keep)
+    if (saves.size() <= a_keep)
     {
         return;
     }
@@ -115,7 +115,7 @@ void Prune(std::filesystem::path a_directory, std::string a_ownId, std::string a
 
     std::vector<std::filesystem::path> old;
     std::vector<std::string> names;
-    for (std::size_t i = keep; i < saves.size(); ++i)
+    for (std::size_t i = a_keep; i < saves.size(); ++i)
     {
         old.push_back(saves[i].path);
         names.push_back(saves[i].path.stem().string());
@@ -130,6 +130,11 @@ void Prune(std::filesystem::path a_directory, std::string a_ownId, std::string a
 
 void StartPrune(const std::string& a_name)
 {
+    if (g_max == 0)
+    {
+        return;
+    }
+
     const auto* manager   = RE::BGSSaveLoadManager::GetSingleton();
     const auto& directory = SaveFiles::Directory();
     if (!manager || directory.empty())
@@ -141,27 +146,24 @@ void StartPrune(const std::string& a_name)
     auto name  = std::filesystem::path{a_name}.stem().string();
     if (IsManualSave(name, ownId))
     {
-        std::thread{Prune, directory, std::move(ownId), std::move(name)}.detach();
+        std::thread{Prune, directory, std::move(ownId), std::move(name), std::size_t{g_max - 1}}.detach();
     }
 }
 } // namespace
 
-void SaferSaving::SavePrune::Init()
+void SaferSaving::SavePrune::Configure()
 {
     const auto max = Config::maxManualSaves.GetValue();
-    if (max > 0)
-    {
-        g_max = static_cast<std::uint32_t>((std::min)(max, Config::kMaxManualSaves));
-    }
+    g_max          = max > 0 ? static_cast<std::uint32_t>((std::min)(max, Config::kMaxManualSaves)) : 0;
 }
 
 void SaferSaving::SavePrune::OnSaved(std::string_view a_name)
 {
-    if (g_max == 0 || a_name.empty())
+    if (a_name.empty())
     {
         return;
     }
 
-    // kSaveGame can arrive off the main thread, and the engine is only safe to read from it
+    // kSaveGame can arrive off the main thread, where neither the engine nor the limit are safe to read
     SKSE::GetTaskInterface()->AddTask([name = std::string{a_name}] { StartPrune(name); });
 }
