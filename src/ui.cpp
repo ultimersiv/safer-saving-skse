@@ -51,12 +51,9 @@ const Check kCombat[]{
 };
 
 const Check kMovement[]{
-    {&Config::moving, "Moving", nullptr},
-    {&Config::sprinting, "Sprinting", nullptr},
-    {&Config::sneaking, "Sneaking", nullptr},
-    {&Config::swimming, "Swimming", nullptr},
-    {&Config::flying, "Flying", nullptr},
-    {&Config::midair, "Jumping or falling", nullptr},
+    {&Config::moving, "Moving", nullptr},     {&Config::sprinting, "Sprinting", nullptr},
+    {&Config::sneaking, "Sneaking", nullptr}, {&Config::swimming, "Swimming", nullptr},
+    {&Config::flying, "Flying", nullptr},     {&Config::midair, "Jumping or falling", nullptr},
     {&Config::mounted, "Mounted", nullptr},
 };
 
