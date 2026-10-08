@@ -26,6 +26,7 @@ target("SaferSaving")
     add_files("src/**.cpp")
     add_headerfiles("src/**.h")
     add_includedirs("src")
+    add_includedirs("lib/skse-menu-framework")
     add_syslinks("shell32")
     set_pcxxheader("src/pch.h")
 

@@ -75,6 +75,8 @@ them outright instead if the Recycle Bin is turned off for that drive or a file 
 
 [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
 
+Optional: [SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/120352) for the in-game menu
+
 ## Installing
 
 Drop into your Skyrim install dir, or install the archive with your mod manager. Safe to uninstall at any time.
@@ -108,6 +110,16 @@ iMaxManualSaves = 20       # keeps the newest 20 manual saves per character
 
 Anything you leave out keeps its default.
 
+## In-game menu
+
+With [SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/120352) installed, every setting
+is also in the Mod Control Panel under Safer Saving. The General page has the notification, the post-load wait,
+autosaves and old saves; the Checks page has every check. Changes take effect at once, with no restart, and are
+saved to `SaferSaving_custom.ini` so they are still there next time. A setting put back to its default is taken out
+of that file again. Each page has a Reset to defaults button for its own settings.
+
+The menu is optional. Without the framework the mod works the same, and the ini is the way to change it.
+
 ## Building
 
 ```
@@ -119,6 +131,8 @@ xmake package
 That produces `build/packages/SaferSaving-<version>.zip`, laid out for a mod manager. To copy the
 DLL straight into a mod folder on every build instead, set `XSE_TES5_MODS_PATH` to your mod
 manager's mods directory before running `xmake`. Requires xmake 3.0 or newer and MSVC with C++23.
+
+Run the unit tests with `xmake build tests` followed by `xmake test`.
 
 ## License
 
