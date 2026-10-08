@@ -24,10 +24,7 @@ constexpr const char* kUnknownLocation{"Skyrim"};
 
 // a longer gap is a pause, a load or a stall, and must not count as play time
 constexpr std::uint32_t kMaxStepMS{250};
-constexpr std::int32_t kMinSlots{1};
-constexpr std::int32_t kMaxSlots{99};
 constexpr std::int32_t kMinMinutes{1};
-constexpr std::int32_t kMaxMinutes{1440};
 // six digits in the file name
 constexpr std::int64_t kMaxPlayMinutes{999999};
 
@@ -284,8 +281,11 @@ void SaferSaving::AutoSave::Init()
         return;
     }
 
-    g_intervalMS = static_cast<std::uint32_t>(std::clamp(minutes, kMinMinutes, kMaxMinutes)) * 60u * 1000u;
-    g_slots      = static_cast<std::uint32_t>(std::clamp(Config::autoSaveSlots.GetValue(), kMinSlots, kMaxSlots));
+    const auto interval = std::clamp(minutes, kMinMinutes, Config::kMaxIntervalMinutes);
+    const auto slots    = std::clamp(Config::autoSaveSlots.GetValue(), Config::kMinSlots, Config::kMaxSlots);
+
+    g_intervalMS = static_cast<std::uint32_t>(interval) * 60u * 1000u;
+    g_slots      = static_cast<std::uint32_t>(slots);
 }
 
 void SaferSaving::AutoSave::OnGameLoaded()

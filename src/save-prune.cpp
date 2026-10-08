@@ -12,7 +12,6 @@ namespace SaveFiles = SaferSaving::SaveFiles;
 
 constexpr std::string_view kPrefix{"Save"};
 constexpr std::size_t kStampDigits{14};
-constexpr std::int32_t kMaxSaves{999};
 
 std::uint32_t g_max{0};
 std::mutex g_pruning;
@@ -152,7 +151,7 @@ void SaferSaving::SavePrune::Init()
     const auto max = Config::maxManualSaves.GetValue();
     if (max > 0)
     {
-        g_max = static_cast<std::uint32_t>((std::min)(max, kMaxSaves));
+        g_max = static_cast<std::uint32_t>((std::min)(max, Config::kMaxManualSaves));
     }
 }
 

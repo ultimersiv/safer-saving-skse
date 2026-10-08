@@ -14,10 +14,12 @@
 #include <ctime>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <thread>

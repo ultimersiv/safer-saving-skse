@@ -29,7 +29,7 @@ struct Context
 
 struct Check
 {
-    const REX::INI::Bool<>* toggle;
+    const Config::Bool* toggle;
     bool (*test)(const Context&);
     const char* reason;
 };
@@ -106,7 +106,7 @@ const Check kChecks[]{
 struct MenuCheck
 {
     const RE::BSFixedString* name;
-    const REX::INI::Bool<>* toggle;
+    const Config::Bool* toggle;
     const char* reason;
 };
 
@@ -243,7 +243,7 @@ void SaferSaving::BlockForMenu()
 
 void SaferSaving::BeginSettle()
 {
-    const auto seconds = Config::settleSeconds.GetValue();
+    const auto seconds = (std::min)(Config::settleSeconds.GetValue(), Config::kMaxSettleSeconds);
     if (seconds <= 0)
     {
         return;
