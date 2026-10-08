@@ -14,6 +14,6 @@ struct Override
     std::optional<std::string> value; // nullopt deletes the key
 };
 
-// the new file text, or nullopt when a_text does not parse
+// the new file text, or nullopt when a_text cannot be read as ini text
 std::optional<std::string> Apply(std::string_view a_text, std::span<const Override> a_overrides);
 } // namespace SaferSaving::IniOverrides

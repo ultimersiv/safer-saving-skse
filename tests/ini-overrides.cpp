@@ -131,3 +131,9 @@ TEST_CASE("a UTF-8 byte order mark is read through")
     CHECK(ini.Value("Movement", "bSneaking") == "false");
     CHECK(ini.Value("Movement", "bMoving") == "false");
 }
+
+TEST_CASE("text with a NUL byte, as a UTF-16 file reads, is refused")
+{
+    const std::string utf16{"[\0M\0]\0", 6};
+    CHECK_FALSE(Apply(utf16, std::vector<Override>{}).has_value());
+}

@@ -95,20 +95,25 @@ change:
 bSneaking = false
 
 [State]
-bAnimationDriven = false   # allows saving while seated
+; allows saving while seated
+bAnimationDriven = false
 
 [Load]
 iSettleSeconds = 10
 
 [Autosave]
-bDisableVanilla = false    # keeps the game's own autosaves
-iIntervalMinutes = 30      # save every 30 minutes instead of 15
+; keeps the game's own autosaves
+bDisableVanilla = false
+; save every 30 minutes instead of 15
+iIntervalMinutes = 30
 
 [Saves]
-iMaxManualSaves = 20       # keeps the newest 20 manual saves per character
+; keeps the newest 20 manual saves per character
+iMaxManualSaves = 20
 ```
 
-Anything you leave out keeps its default.
+Anything you leave out keeps its default. Notes go on their own line starting with ;, since a number with text
+after it is ignored and the default is used.
 
 ## In-game menu
 
@@ -116,9 +121,14 @@ With [SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/1
 is also in the Mod Control Panel under Safer Saving. The General page has the notification, the post-load wait,
 autosaves and old saves; the Checks page has every check. Changes take effect at once, with no restart, and are
 saved to `SaferSaving_custom.ini` so they are still there next time. A setting put back to its default is taken out
-of that file again. Each page has a Reset to defaults button for its own settings.
+of that file again. Saving from the menu rewrites the whole file, which drops comments at its very end and any line
+it cannot read, so the file as it was before your first change each session is kept as SaferSaving_custom.ini.bak.
+Each page has a Reset to defaults button for its own settings.
 
 The menu is optional. Without the framework the mod works the same, and the ini is the way to change it.
+
+If your SKSE Menu Framework is too old for the menu, SaferSaving.log says which part is missing and the menu
+stays off.
 
 ## Building
 

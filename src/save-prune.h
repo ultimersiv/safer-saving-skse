@@ -2,7 +2,7 @@
 
 namespace SaferSaving::SavePrune
 {
-// reads the ini; call again whenever a setting changes
+// applies the current settings; call again whenever one changes
 void Configure();
 
 // trims the oldest manual saves when a new one is made

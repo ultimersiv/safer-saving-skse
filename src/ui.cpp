@@ -23,6 +23,32 @@ constexpr auto kSection = "Safer Saving";
 constexpr ImGuiMCP::ImVec4 kWarningColor{1.0f, 0.4f, 0.4f, 1.0f};
 constexpr std::size_t kTextCapacity{256};
 
+// every framework export the pages call; an older build missing one would crash on first render
+constexpr const char* kExports[]{
+    "AddSectionItem",
+    "igBeginPopupModal",
+    "igButton",
+    "igCheckbox",
+    "igCloseCurrentPopup",
+    "igCollapsingHeader_TreeNodeFlags",
+    "igEndPopup",
+    "igInputText",
+    "igIsItemActive",
+    "igIsItemDeactivatedAfterEdit",
+    "igOpenPopup_Str",
+    "igPopID",
+    "igPushID_Str",
+    "igSameLine",
+    "igSeparator",
+    "igSeparatorText",
+    "igSetItemTooltipV",
+    "igSliderInt",
+    "igSpacing",
+    "igTextV",
+    "igTextColoredV",
+    "igTextWrappedV",
+};
+
 // set when the last write to the custom ini failed, cleared by the next good one
 bool g_writeFailed{false};
 
@@ -67,7 +93,7 @@ const Check kState[]{
      "Also covers furniture idles, so leaving it on means you cannot save while seated."},
     {&Config::grabbing, "Holding an object", "With grab or telekinesis."},
     {&Config::controlsDisabled, "Controls taken away", "Scripted scenes and anything else that takes your controls."},
-    {&Config::trespassing, "Trespassing", nullptr},
+    {&Config::trespassing, "Trespassing", "Standing somewhere you are not allowed to be."},
     {&Config::notLoaded, "Surroundings still loading", "Before your surroundings have finished loading in."},
 };
 
@@ -126,8 +152,8 @@ void Commit(std::span<Config::Entry* const> a_entries)
 
 void Commit(Config::Entry& a_entry)
 {
-    Config::Entry* const entries[]{&a_entry};
-    Commit(entries);
+    g_writeFailed = !Config::Persist(a_entry);
+    Apply();
 }
 
 // keyed by the ini entry, so equal labels never collide
@@ -276,7 +302,8 @@ void __stdcall RenderGeneral()
 
     ImGuiMCP::SeparatorText("Load");
     Slider(Config::settleSeconds, "Wait after loading", 0, Config::kMaxSettleSeconds, "%d s", "Off",
-           "Seconds to refuse saving after a loading screen, after loading a save, and after starting a new game.");
+           "Seconds to refuse saving after a loading screen, after loading a save, and after starting a new game. "
+           "Ctrl+click to type an exact value.");
 
     ImGuiMCP::SeparatorText("Autosave");
     Toggle(Config::disableVanillaAutosaves, "Disable vanilla autosaves",
@@ -284,14 +311,15 @@ void __stdcall RenderGeneral()
            "Unticking this does not turn them back on; do that in Settings, Gameplay.");
     Slider(Config::autoSaveMinutes, "Autosave interval", 0, Config::kMaxIntervalMinutes, "%d min", "Off",
            "Minutes of play between automatic saves. Paused time and loading screens do not count. A save that falls "
-           "due while saving is blocked happens at the next safe moment.");
+           "due while saving is blocked happens at the next safe moment. Ctrl+click to type an exact value.");
     Slider(Config::autoSaveSlots, "Autosave slots", Config::kMinSlots, Config::kMaxSlots, "%d", nullptr,
            "How many slots to rotate through. Lowering this leaves the extra files behind for you to delete.");
 
     ImGuiMCP::SeparatorText("Saves");
     Slider(Config::maxManualSaves, "Manual saves kept", 0, Config::kMaxManualSaves, "%d", "Keep all",
            "How many manual saves to keep per character. Each new manual save sends the oldest past this count to the "
-           "Recycle Bin. Quicksaves, autosaves and other characters are left alone.");
+           "Recycle Bin. Quicksaves, autosaves and other characters are left alone. "
+           "Ctrl+click to type an exact value.");
 
     ResetButton("General", kGeneralEntries);
 }
@@ -326,6 +354,15 @@ void SaferSaving::UI::Register()
     {
         logs::info("SKSE Menu Framework not found; in-game menu disabled");
         return;
+    }
+
+    for (const auto* name : kExports)
+    {
+        if (!GetMenuFrameworkFunction<FARPROC>(name))
+        {
+            logs::warn("SKSE Menu Framework lacks {}; in-game menu disabled", name);
+            return;
+        }
     }
 
     SKSEMenuFramework::SetSection(kSection);

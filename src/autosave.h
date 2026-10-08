@@ -2,7 +2,7 @@
 
 namespace SaferSaving::AutoSave
 {
-// reads the ini; call again whenever a setting changes
+// applies the current settings; call again whenever one changes
 void Configure();
 
 // restarts the interval and reseeds the slot
