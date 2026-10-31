@@ -7,7 +7,6 @@ namespace
 constexpr auto kBaseFile   = "Data/SKSE/Plugins/SaferSaving.ini";
 constexpr auto kUserFile   = "Data/SKSE/Plugins/SaferSaving_custom.ini";
 constexpr auto kBackupFile = "Data/SKSE/Plugins/SaferSaving_custom.ini.bak";
-constexpr auto kTempFile   = "Data/SKSE/Plugins/SaferSaving_custom.ini.tmp";
 
 // set once the custom ini has been copied to its backup this session
 bool g_backedUp{false};
@@ -81,25 +80,12 @@ bool SaferSaving::Config::Persist(std::span<Entry* const> a_entries)
         }
     }
 
-    // written beside it and swapped in, so a failed write never leaves the custom ini cut short
-    {
-        std::ofstream out{kTempFile, std::ios::binary | std::ios::trunc};
-        out << *updated;
-        out.flush();
-        if (!out)
-        {
-            logs::error("could not write {}", kUserFile);
-            out.close();
-            std::filesystem::remove(kTempFile, ec);
-            return false;
-        }
-    }
-
-    std::filesystem::rename(kTempFile, kUserFile, ec);
-    if (ec)
+    std::ofstream out{kUserFile, std::ios::binary | std::ios::trunc};
+    out << *updated;
+    out.flush();
+    if (!out)
     {
         logs::error("could not write {}", kUserFile);
-        std::filesystem::remove(kTempFile, ec);
         return false;
     }
 
