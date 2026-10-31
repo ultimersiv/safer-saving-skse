@@ -103,7 +103,8 @@ const std::array<RE::Setting*, kCount>& Settings()
 
 void SaferSaving::ApplyAutosaveBlock()
 {
-    if (!Config::disableVanillaAutosaves.GetValue())
+    // switching off leaves the game's switches as they are, the same as unticking bDisableVanilla
+    if (!Config::enabled.GetValue() || !Config::disableVanillaAutosaves.GetValue())
     {
         return;
     }
