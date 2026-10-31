@@ -24,14 +24,11 @@ constexpr const char* kUnknownLocation{"Skyrim"};
 
 // a longer gap is a pause, a load or a stall, and must not count as play time
 constexpr std::uint32_t kMaxStepMS{250};
-constexpr std::int32_t kMinSlots{1};
-constexpr std::int32_t kMaxSlots{99};
 constexpr std::int32_t kMinMinutes{1};
-constexpr std::int32_t kMaxMinutes{1440};
 // six digits in the file name
 constexpr std::int64_t kMaxPlayMinutes{999999};
 
-// set once by Init
+// set by Configure on the main thread
 std::uint32_t g_intervalMS{0};
 std::uint32_t g_slots{1};
 
@@ -245,8 +242,8 @@ void Write(std::uint32_t a_generation)
 {
     g_dispatched = false;
 
-    // a load since then means this save belongs to a session that is gone
-    if (g_generation != a_generation)
+    // a load since then, or autosave switched off, means this save is no longer wanted
+    if (g_generation != a_generation || g_intervalMS == 0)
     {
         return;
     }
@@ -276,25 +273,28 @@ void Write(std::uint32_t a_generation)
 }
 } // namespace
 
-void SaferSaving::AutoSave::Init()
+void SaferSaving::AutoSave::Configure()
 {
-    const auto minutes = Config::autoSaveMinutes.GetValue();
-    if (minutes <= 0)
+    // the mod switched off counts as autosave off, so a queued save is dropped too
+    const auto minutes  = Config::enabled.GetValue() ? Config::autoSaveMinutes.GetValue() : 0;
+    const auto clamped  = std::clamp(minutes, kMinMinutes, Config::kMaxIntervalMinutes);
+    const auto slots    = std::clamp(Config::autoSaveSlots.GetValue(), Config::kMinSlots, Config::kMaxSlots);
+    const auto interval = minutes > 0 ? static_cast<std::uint32_t>(clamped) * 60u * 1000u : 0u;
+
+    // switching back on starts a fresh interval rather than firing on stale progress
+    if (g_intervalMS == 0 && interval != 0)
     {
-        return;
+        g_lastTickMS = 0;
+        g_elapsedMS  = 0;
+        g_due        = false;
     }
 
-    g_intervalMS = static_cast<std::uint32_t>(std::clamp(minutes, kMinMinutes, kMaxMinutes)) * 60u * 1000u;
-    g_slots      = static_cast<std::uint32_t>(std::clamp(Config::autoSaveSlots.GetValue(), kMinSlots, kMaxSlots));
+    g_intervalMS = interval;
+    g_slots      = static_cast<std::uint32_t>(slots);
 }
 
 void SaferSaving::AutoSave::OnGameLoaded()
 {
-    if (g_intervalMS == 0)
-    {
-        return;
-    }
-
     // a task queued by the old session must neither run nor leave dispatched set behind it
     ++g_generation;
     g_dispatched = false;
@@ -306,11 +306,6 @@ void SaferSaving::AutoSave::OnGameLoaded()
 
 void SaferSaving::AutoSave::OnSaved()
 {
-    if (g_intervalMS == 0)
-    {
-        return;
-    }
-
     // a counter, because this may not be the main thread and Tick owns the timer
     g_rearm.fetch_add(1, std::memory_order_relaxed);
 }

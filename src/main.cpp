@@ -7,6 +7,7 @@
 #include "menu-listener.h"
 #include "save-guard.h"
 #include "save-prune.h"
+#include "ui.h"
 
 namespace
 {
@@ -66,6 +67,10 @@ void OnMessage(SKSE::MessagingInterface::Message* a_message)
 
     switch (a_message->type)
     {
+        // every plugin is loaded by now, so the framework can be found whatever the load order
+        case SKSE::MessagingInterface::kPostLoad:
+            SaferSaving::UI::Register();
+            break;
         case SKSE::MessagingInterface::kDataLoaded:
             SaferSaving::RegisterMenuListener();
             SaferSaving::RegisterInputListener();
@@ -95,8 +100,8 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
     SKSE::Init(a_skse);
     SaferSaving::Config::Load();
-    SaferSaving::AutoSave::Init();
-    SaferSaving::SavePrune::Init();
+    SaferSaving::AutoSave::Configure();
+    SaferSaving::SavePrune::Configure();
     InstallHooks();
     if (!SKSE::GetMessagingInterface()->RegisterListener(OnMessage))
     {

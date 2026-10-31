@@ -15,11 +15,13 @@ This mod tries to minimize the chances of that happening for longer running play
 - Weapon or spell drawn, including the draw and sheathe animations
 - Staggered, knocked down or ragdolled
 - Bleeding out, unconscious or dying
-- In a killmove
+- In a killmove or a killcam, including bow and spell kills
 - Mounted
 - Sitting, sleeping, or moving in or out of furniture
 - In a paired or scripted animation
 - During a scripted scene, when the game has taken your controls
+- During a scripted camera shot, while the furniture camera is on, or while the idle camera
+  circles you
 - Holding an object with grab or telekinesis
 - Trespassing
 - For 30 seconds after a loading screen, and after loading a save or starting a new game
@@ -75,6 +77,8 @@ them outright instead if the Recycle Bin is turned off for that drive or a file 
 
 [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
 
+Optional: [SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/120352) for the in-game menu
+
 ## Installing
 
 Drop into your Skyrim install dir, or install the archive with your mod manager. Safe to uninstall at any time.
@@ -93,20 +97,47 @@ change:
 bSneaking = false
 
 [State]
-bAnimationDriven = false   # allows saving while seated
+; allows saving while seated, together with bFurniture below
+bAnimationDriven = false
+
+[Camera]
+bFurniture = false
 
 [Load]
 iSettleSeconds = 10
 
 [Autosave]
-bDisableVanilla = false    # keeps the game's own autosaves
-iIntervalMinutes = 30      # save every 30 minutes instead of 15
+; keeps the game's own autosaves
+bDisableVanilla = false
+; save every 30 minutes instead of 15
+iIntervalMinutes = 30
 
 [Saves]
-iMaxManualSaves = 20       # keeps the newest 20 manual saves per character
+; keeps the newest 20 manual saves per character
+iMaxManualSaves = 20
 ```
 
-Anything you leave out keeps its default.
+Anything you leave out keeps its default. Notes go on their own line starting with ;, since a number with text
+after it is ignored and the default is used.
+
+To switch the whole mod off without uninstalling it, set `[General] bEnabled = false`. Saving is then never blocked,
+no messages show, no timed autosaves are made and no old saves are cleaned up, whatever the other settings say. The
+game's own autosave switches are left as they are, so turn them back on in Settings, Gameplay if you want them.
+
+## In-game menu
+
+With [SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/120352) installed, every setting
+is also in the Mod Control Panel under Safer Saving. The General page has the on/off switch for the whole mod, the
+notification, the post-load wait, autosaves and old saves; the Checks page has every check. Changes take effect at
+once, with no restart, and are saved to `SaferSaving_custom.ini` so they are still there next time. A setting put
+back to its default is taken out of that file again. Saving from the menu rewrites the whole file, which drops
+comments at its very end and any line it cannot read, so the file as it was before your first change each session
+is kept as `SaferSaving_custom.ini.bak`. Each page has a Reset to defaults button for its own settings.
+
+The menu is optional. Without the framework the mod works the same, and the ini is the way to change it.
+
+If your SKSE Menu Framework is too old for the menu, SaferSaving.log says which part is missing and the menu
+stays off.
 
 ## Building
 
@@ -119,6 +150,8 @@ xmake package
 That produces `build/packages/SaferSaving-<version>.zip`, laid out for a mod manager. To copy the
 DLL straight into a mod folder on every build instead, set `XSE_TES5_MODS_PATH` to your mod
 manager's mods directory before running `xmake`. Requires xmake 3.0 or newer and MSVC with C++23.
+
+Run the unit tests with `xmake build tests` followed by `xmake test`.
 
 ## License
 

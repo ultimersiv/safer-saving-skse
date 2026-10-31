@@ -29,10 +29,19 @@ struct Context
 
 struct Check
 {
-    const REX::INI::Bool<>* toggle;
+    const Config::Bool* toggle;
     bool (*test)(const Context&);
     const char* reason;
 };
+
+// VR inserts kVR at 9, so the ids checked here are the same in every runtime
+static_assert(RE::CameraStates::kAnimated < RE::CameraStates::kVR);
+
+bool CameraIs(RE::CameraState a_state)
+{
+    const auto* camera = RE::PlayerCamera::GetSingleton();
+    return camera && camera->currentState && camera->currentState->id == a_state;
+}
 
 // grouped as in the ini, cheapest first within each group; order also picks the reason shown
 const Check kChecks[]{
@@ -83,6 +92,12 @@ const Check kChecks[]{
     {&Config::grabbing, [](const Context& c) { return c.player.IsGrabbing(); }, "Holding an object."},
     // a guard or an owner is about to run a scene at you
     {&Config::trespassing, [](const Context& c) { return c.player.IsTrespassing(); }, "Trespassing."},
+    // [Camera]
+    {&Config::killcam, [](const Context&) { return CameraIs(RE::CameraStates::kVATS); }, "In a killcam."},
+    {&Config::scriptedCamera, [](const Context&) { return CameraIs(RE::CameraStates::kAnimated); }, "Scripted camera."},
+    {&Config::autoVanity, [](const Context&) { return CameraIs(RE::CameraStates::kAutoVanity); }, "Idle camera orbit."},
+    {&Config::furnitureCamera, [](const Context&) { return CameraIs(RE::CameraStates::kFurniture); },
+     "Furniture camera."},
     // dearest two, out of their ini groups and last so that any cheaper check short-circuits them
     // also true for furniture idles, so sitting counts as busy
     {&Config::animationDriven, [](const Context& c) { return c.player.IsAnimationDriven(); }, "In an animation."},
@@ -106,7 +121,7 @@ const Check kChecks[]{
 struct MenuCheck
 {
     const RE::BSFixedString* name;
-    const REX::INI::Bool<>* toggle;
+    const Config::Bool* toggle;
     const char* reason;
 };
 
@@ -166,6 +181,11 @@ const char* BlockingMenuOpen()
 // nullptr when saving is allowed
 const char* GetBlockReason(RE::PlayerCharacter* a_player)
 {
+    if (!Config::enabled.GetValue())
+    {
+        return nullptr;
+    }
+
     if (std::chrono::steady_clock::now() < g_settleUntil.load(std::memory_order_relaxed))
     {
         return "The game is still settling down.";
@@ -235,6 +255,11 @@ bool SaferSaving::IsMenuInBlockList(const RE::BSFixedString& a_menuName)
 
 void SaferSaving::BlockForMenu()
 {
+    if (!Config::enabled.GetValue())
+    {
+        return;
+    }
+
     if (auto* player = RE::PlayerCharacter::GetSingleton())
     {
         BlockSaving(player);
@@ -243,7 +268,14 @@ void SaferSaving::BlockForMenu()
 
 void SaferSaving::BeginSettle()
 {
-    const auto seconds = Config::settleSeconds.GetValue();
+    if (!Config::enabled.GetValue())
+    {
+        // a load while switched off ends any running window
+        g_settleUntil.store({}, std::memory_order_relaxed);
+        return;
+    }
+
+    const auto seconds = (std::min)(Config::settleSeconds.GetValue(), Config::kMaxSettleSeconds);
     if (seconds <= 0)
     {
         return;
@@ -259,10 +291,17 @@ void SaferSaving::BeginSettle()
 
 void SaferSaving::OnGameLoaded()
 {
-    // clear flag just in case
     if (auto* player = RE::PlayerCharacter::GetSingleton())
     {
-        player->GetPlayerRuntimeData().byCharGenFlag.reset(kDisableSaving);
+        // clear flag just in case; switched off, a flag set elsewhere is not ours to clear
+        if (Config::enabled.GetValue())
+        {
+            player->GetPlayerRuntimeData().byCharGenFlag.reset(kDisableSaving);
+        }
+        else
+        {
+            AllowSaving(player);
+        }
     }
 
     g_ownsFlag.store(false, std::memory_order_relaxed);
@@ -303,7 +342,7 @@ void SaferSaving::Reevaluate()
 
 void SaferSaving::NotifyBlockedSaveAttempt()
 {
-    if (!Config::notify.GetValue())
+    if (!Config::enabled.GetValue() || !Config::notify.GetValue())
     {
         return;
     }
