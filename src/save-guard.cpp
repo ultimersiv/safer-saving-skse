@@ -270,7 +270,7 @@ void SaferSaving::BeginSettle()
 {
     if (!Config::enabled.GetValue())
     {
-        // a window started before switching off must not carry over to switching back on
+        // a load while switched off ends any running window
         g_settleUntil.store({}, std::memory_order_relaxed);
         return;
     }
