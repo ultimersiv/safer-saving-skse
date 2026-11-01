@@ -186,7 +186,9 @@ const char* GetBlockReason(RE::PlayerCharacter* a_player)
         return nullptr;
     }
 
-    if (std::chrono::steady_clock::now() < g_settleUntil.load(std::memory_order_relaxed))
+    // turning the wait off ends a running one too
+    if (Config::settleSeconds.GetValue() > 0 &&
+        std::chrono::steady_clock::now() < g_settleUntil.load(std::memory_order_relaxed))
     {
         return "The game is still settling down.";
     }

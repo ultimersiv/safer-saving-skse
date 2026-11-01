@@ -20,6 +20,7 @@ std::mutex g_pruning;
 struct Save
 {
     std::filesystem::path path;
+    std::string name;
     std::uint64_t stamp;
 };
 
@@ -68,15 +69,16 @@ std::vector<std::filesystem::path> FilesOf(const std::filesystem::path& a_direct
 {
     std::vector<std::filesystem::path> files;
 
-    std::error_code ec;
-    for (const auto& item : std::filesystem::directory_iterator{a_directory, ec})
-    {
-        const auto name = item.path().filename().string();
-        if (std::ranges::find(a_names, name.substr(0, name.find('.'))) != a_names.end())
-        {
-            files.push_back(item.path());
-        }
-    }
+    SaveFiles::ForEachEntry(a_directory,
+                            [&](const std::filesystem::directory_entry& a_item)
+                            {
+                                const auto name = SaveFiles::AsciiName(a_item.path().filename());
+                                if (name &&
+                                    std::ranges::find(a_names, name->substr(0, name->find('.'))) != a_names.end())
+                                {
+                                    files.push_back(a_item.path());
+                                }
+                            });
 
     return files;
 }
@@ -86,25 +88,34 @@ void Prune(std::filesystem::path a_directory, std::string a_ownId, std::string a
 {
     const std::scoped_lock lock{g_pruning};
 
+    // saves from the same second on are for a later prune; with a limit of one this would take them
+    const auto newestStamp = StampOf(a_newest);
+
     std::vector<Save> saves;
 
-    std::error_code ec;
-    for (const auto& item : std::filesystem::directory_iterator{a_directory, ec})
-    {
-        const auto& path = item.path();
-        const auto name  = path.stem().string();
-        // the new save may still be writing, and always keeps its place
-        if (path.extension() != ".ess" || name == a_newest || !IsManualSave(name, a_ownId))
-        {
-            continue;
-        }
+    SaveFiles::ForEachEntry(a_directory,
+                            [&](const std::filesystem::directory_entry& a_item)
+                            {
+                                const auto& path = a_item.path();
+                                if (path.extension() != ".ess")
+                                {
+                                    return;
+                                }
 
-        // a save that cannot be dated is never deleted
-        if (const auto stamp = StampOf(name))
-        {
-            saves.push_back({path, *stamp});
-        }
-    }
+                                // the new save may still be writing, and always keeps its place
+                                const auto name = SaveFiles::AsciiName(path.stem());
+                                if (!name || *name == a_newest || !IsManualSave(*name, a_ownId))
+                                {
+                                    return;
+                                }
+
+                                // a save that cannot be dated is never deleted
+                                const auto stamp = StampOf(*name);
+                                if (stamp && (!newestStamp || *stamp < *newestStamp))
+                                {
+                                    saves.push_back({path, *name, *stamp});
+                                }
+                            });
 
     if (saves.size() <= a_keep)
     {
@@ -118,7 +129,7 @@ void Prune(std::filesystem::path a_directory, std::string a_ownId, std::string a
     for (std::size_t i = a_keep; i < saves.size(); ++i)
     {
         old.push_back(saves[i].path);
-        names.push_back(saves[i].path.stem().string());
+        names.push_back(saves[i].name);
     }
 
     // saves before co-saves, so quitting midway can never leave a save without its co-save

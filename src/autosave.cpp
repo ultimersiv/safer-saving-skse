@@ -152,29 +152,30 @@ std::uint32_t NewestSlotOnDisk(const RE::BGSSaveLoadManager& a_manager)
     std::uint32_t newestSlot = 0;
     std::filesystem::file_time_type newestTime{};
 
-    std::error_code ec;
-    for (const auto& item : std::filesystem::directory_iterator{directory, ec})
-    {
-        // the ess alone; the co-save shares its time and a bak is older by definition
-        if (item.path().extension() != ".ess")
-        {
-            continue;
-        }
+    SaveFiles::ForEachEntry(directory,
+                            [&](const std::filesystem::directory_entry& a_item)
+                            {
+                                // the ess alone; the co-save shares its time and a bak is older by definition
+                                if (a_item.path().extension() != ".ess")
+                                {
+                                    return;
+                                }
 
-        const auto slot = SlotOf(item.path().filename().string(), ownId);
-        if (slot == 0)
-        {
-            continue;
-        }
+                                const auto name = SaveFiles::AsciiName(a_item.path().filename());
+                                const auto slot = name ? SlotOf(*name, ownId) : 0;
+                                if (slot == 0)
+                                {
+                                    return;
+                                }
 
-        const auto written = item.last_write_time(ec);
-        if (!ec && written > newestTime)
-        {
-            newestTime = written;
-            newestSlot = slot;
-        }
-        ec.clear();
-    }
+                                std::error_code ec;
+                                const auto written = a_item.last_write_time(ec);
+                                if (!ec && written > newestTime)
+                                {
+                                    newestTime = written;
+                                    newestSlot = slot;
+                                }
+                            });
 
     return newestSlot;
 }
@@ -203,15 +204,17 @@ void PruneSlot(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manager)
 
     const auto ownId = SaveFiles::OwnId(a_manager);
 
-    std::error_code ec;
-    for (const auto& item : std::filesystem::directory_iterator{directory, ec})
-    {
-        // the ess, the co-save and any bak all carry the same name
-        if (SlotOf(item.path().filename().string(), ownId) == a_slot)
-        {
-            std::filesystem::remove(item.path(), ec);
-        }
-    }
+    SaveFiles::ForEachEntry(directory,
+                            [&](const std::filesystem::directory_entry& a_item)
+                            {
+                                // the ess, the co-save and any bak all carry the same name
+                                const auto name = SaveFiles::AsciiName(a_item.path().filename());
+                                if (name && SlotOf(*name, ownId) == a_slot)
+                                {
+                                    std::error_code ec;
+                                    std::filesystem::remove(a_item.path(), ec);
+                                }
+                            });
 }
 
 // whether the engine would take a save at all; Save_Impl fails silently otherwise
@@ -270,6 +273,9 @@ void Write(std::uint32_t a_generation)
 
     SaferSaving::ShowNotification(kNotification);
     manager->Save(name.c_str());
+
+    // one attempt per interval, so a save the engine drops cannot run through every slot
+    g_due = false;
 }
 } // namespace
 
@@ -339,7 +345,7 @@ void SaferSaving::AutoSave::Tick()
         g_elapsedMS = 0;
     }
 
-    // a blocked interval waits rather than skips: due stays set until a save actually lands
+    // a blocked interval waits rather than skips: due stays set until a save is attempted
     if (!g_due || g_dispatched)
     {
         return;
