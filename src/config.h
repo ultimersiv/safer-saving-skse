@@ -123,6 +123,8 @@ inline Bool autoVanity{"Camera", "bAutoVanity", true};
 inline Bool furnitureCamera{"Camera", "bFurniture", true};
 
 inline Bool itemMenus{"Menus", "bItemMenus", true};
+inline Bool mapMenu{"Menus", "bMap", true};
+inline Bool skillsMenu{"Menus", "bSkills", true};
 inline Bool dialogue{"Menus", "bDialogue", true};
 inline Bool book{"Menus", "bBook", true};
 inline Bool crafting{"Menus", "bCrafting", true};

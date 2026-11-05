@@ -53,3 +53,21 @@ bool SaferSaving::SaveFiles::Recycle(const std::vector<std::filesystem::path>& a
 
     return SHFileOperationW(&operation) == 0 && !operation.fAnyOperationsAborted;
 }
+
+std::optional<std::string> SaferSaving::SaveFiles::AsciiName(const std::filesystem::path& a_path)
+{
+    const auto& wide = a_path.native();
+
+    std::string name;
+    name.reserve(wide.size());
+    for (const auto c : wide)
+    {
+        if (c >= 0x80)
+        {
+            return std::nullopt;
+        }
+        name.push_back(static_cast<char>(c));
+    }
+
+    return name;
+}
