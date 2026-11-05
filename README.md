@@ -26,8 +26,8 @@ This mod tries to minimize the chances of that happening for longer running play
 - Trespassing
 - For 30 seconds after a loading screen, and after loading a save or starting a new game
 - Before the player's surroundings have finished loading in
-- With the inventory, a container, barter, gift, magic, favourites, dialogue, book, crafting,
-  lockpicking, level-up, training, sleep/wait, mist or a loading screen open
+- With the inventory, a container, barter, gift, magic, favourites, map, skills, dialogue, book,
+  crafting, lockpicking, level-up, training, sleep/wait, mist or a loading screen open
 
 The journal and the save/load menus are never blocked, so a deliberate manual save is always
 available when you are standing still.
@@ -52,8 +52,9 @@ blocked, the save is not skipped: it waits and happens at the next safe moment, 
 takes. Any save you make yourself restarts the interval. `[Autosave] iIntervalMinutes` changes the
 interval, `0` turns it off, and `[Autosave] iSlots` sets how many slots it rotates through. The
 saves show in the load menu as autosaves of the current character, numbered from 101, so vanilla
-autosaves and your own saves are never touched. The file sitting in a slot is deleted as that slot
-comes round again, so the count stays at `iSlots` per character.
+autosaves and your own saves are never touched. The file sitting in a slot is deleted once the new
+save in that slot has been written, so the count stays at `iSlots` per character. If the game
+refuses an autosave, nothing is deleted and it tries again after 30 seconds of play.
 
 Four of the switches this changes (`bSaveOnPause`, `bSaveOnTravel`, `bSaveOnWait`, `bSaveOnRest`)
 are the same four in the game's own Settings, Gameplay menu. They are put back every time you close

@@ -43,6 +43,13 @@ bool CameraIs(RE::CameraState a_state)
     return camera && camera->currentState && camera->currentState->id == a_state;
 }
 
+// the camera state alone let a bow killcam through, and the engine refused to save during it
+bool KillCamRunning()
+{
+    const auto* vats = RE::VATS::GetSingleton();
+    return vats && vats->mode != RE::VATS::VATS_MODE::kNone;
+}
+
 // grouped as in the ini, cheapest first within each group; order also picks the reason shown
 const Check kChecks[]{
     // [Combat] also covers the draw and sheathe animations, not just a fully drawn weapon or spell
@@ -93,7 +100,8 @@ const Check kChecks[]{
     // a guard or an owner is about to run a scene at you
     {&Config::trespassing, [](const Context& c) { return c.player.IsTrespassing(); }, "Trespassing."},
     // [Camera]
-    {&Config::killcam, [](const Context&) { return CameraIs(RE::CameraStates::kVATS); }, "In a killcam."},
+    {&Config::killcam, [](const Context&) { return CameraIs(RE::CameraStates::kVATS) || KillCamRunning(); },
+     "In a killcam."},
     {&Config::scriptedCamera, [](const Context&) { return CameraIs(RE::CameraStates::kAnimated); }, "Scripted camera."},
     {&Config::autoVanity, [](const Context&) { return CameraIs(RE::CameraStates::kAutoVanity); }, "Idle camera orbit."},
     {&Config::furnitureCamera, [](const Context&) { return CameraIs(RE::CameraStates::kFurniture); },
@@ -144,6 +152,9 @@ const char* MatchBlockingMenu(Fn&& a_pred)
         {&strings->inventoryMenu, &Config::itemMenus, "Inventory open."},
         {&strings->magicMenu, &Config::itemMenus, "Magic menu open."},
         {&strings->tweenMenu, &Config::itemMenus, "Pause wheel open."},
+        // vanilla pauses these, but with menus unpaused by a mod an autosave can fall due behind them
+        {&strings->mapMenu, &Config::mapMenu, "Map open."},
+        {&strings->statsMenu, &Config::skillsMenu, "Skills menu open."},
         {&strings->dialogueMenu, &Config::dialogue, "In a conversation."},
         {&strings->bookMenu, &Config::book, "Reading."},
         {&strings->craftingMenu, &Config::crafting, "Crafting."},

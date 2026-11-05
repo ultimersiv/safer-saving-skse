@@ -87,7 +87,7 @@ void OnMessage(SKSE::MessagingInterface::Message* a_message)
             SaferSaving::AutoSave::OnGameLoaded();
             break;
         case SKSE::MessagingInterface::kSaveGame:
-            SaferSaving::AutoSave::OnSaved();
+            SaferSaving::AutoSave::OnSaved(SavedName(*a_message));
             SaferSaving::SavePrune::OnSaved(SavedName(*a_message));
             break;
         default:

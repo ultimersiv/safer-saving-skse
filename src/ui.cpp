@@ -111,6 +111,8 @@ const Check kCamera[]{
 
 const Check kMenus[]{
     {&Config::itemMenus, "Item menus", "Inventory, container, barter, gift, magic, favourites and the pause wheel."},
+    {&Config::mapMenu, "Map", "Matters with mods that keep the game running while menus are open."},
+    {&Config::skillsMenu, "Skills", "Matters with mods that keep the game running while menus are open."},
     {&Config::dialogue, "Dialogue", nullptr},
     {&Config::book, "Book", nullptr},
     {&Config::crafting, "Crafting", nullptr},

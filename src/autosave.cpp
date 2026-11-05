@@ -24,6 +24,8 @@ constexpr const char* kUnknownLocation{"Skyrim"};
 
 // a longer gap is a pause, a load or a stall, and must not count as play time
 constexpr std::uint32_t kMaxStepMS{250};
+// play time before a save the engine refused is tried again; below the shortest interval
+constexpr std::uint32_t kRetryMS{30 * 1000};
 constexpr std::int32_t kMinMinutes{1};
 // six digits in the file name
 constexpr std::int64_t kMaxPlayMinutes{999999};
@@ -44,6 +46,10 @@ std::uint32_t g_generation{0};
 bool g_due{false};
 bool g_dispatched{false};
 bool g_slotSeeded{false};
+
+// asked of the engine but not yet confirmed by kSaveGame; empty when nothing is pending
+std::string g_pendingName;
+std::uint32_t g_pendingSlot{0};
 
 std::string HexOf(std::string_view a_text)
 {
@@ -181,7 +187,7 @@ std::uint32_t NewestSlotOnDisk(const RE::BGSSaveLoadManager& a_manager)
 }
 
 // seeded here rather than on load: the save folder does not resolve at kPostLoadGame, but does by now
-std::uint32_t TakeNextSlot(const RE::BGSSaveLoadManager& a_manager)
+std::uint32_t NextSlot(const RE::BGSSaveLoadManager& a_manager)
 {
     if (!g_slotSeeded)
     {
@@ -189,12 +195,12 @@ std::uint32_t TakeNextSlot(const RE::BGSSaveLoadManager& a_manager)
         g_slotSeeded = true;
     }
 
-    g_slot = (g_slot % g_slots) + 1;
-    return g_slot;
+    // only taken once the save is confirmed, so a refused one leaves the rotation where it was
+    return (g_slot % g_slots) + 1;
 }
 
 // the timestamp in the name means the engine never overwrites a slot, so old files are ours to clear
-void PruneSlot(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manager)
+void PruneSlot(std::uint32_t a_slot, std::string_view a_keep, const RE::BGSSaveLoadManager& a_manager)
 {
     const auto& directory = SaveFiles::Directory();
     if (directory.empty())
@@ -209,7 +215,8 @@ void PruneSlot(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manager)
                             {
                                 // the ess, the co-save and any bak all carry the same name
                                 const auto name = SaveFiles::AsciiName(a_item.path().filename());
-                                if (name && SlotOf(*name, ownId) == a_slot)
+                                if (name && SlotOf(*name, ownId) == a_slot &&
+                                    name->substr(0, name->find('.')) != a_keep)
                                 {
                                     std::error_code ec;
                                     std::filesystem::remove(a_item.path(), ec);
@@ -217,7 +224,39 @@ void PruneSlot(std::uint32_t a_slot, const RE::BGSSaveLoadManager& a_manager)
                             });
 }
 
-// whether the engine would take a save at all; Save_Impl fails silently otherwise
+// the save kSaveGame names, without any folder or extension
+std::string_view StemOf(std::string_view a_name)
+{
+    if (const auto slash = a_name.find_last_of("/\\"); slash != std::string_view::npos)
+    {
+        a_name.remove_prefix(slash + 1);
+    }
+
+    if (a_name.ends_with(".ess"))
+    {
+        a_name.remove_suffix(4);
+    }
+
+    return a_name;
+}
+
+// from the task queue after kSaveGame; only a save that landed may clear its slot
+void Confirm(std::string_view a_name)
+{
+    if (g_pendingName.empty() || a_name != g_pendingName)
+    {
+        return;
+    }
+
+    g_slot = g_pendingSlot;
+    if (const auto* manager = RE::BGSSaveLoadManager::GetSingleton())
+    {
+        PruneSlot(g_pendingSlot, g_pendingName, *manager);
+    }
+    g_pendingName.clear();
+}
+
+// whether the engine would take a save at all; it answers "You cannot save right now" otherwise
 bool CanDispatch(RE::PlayerCharacter* a_player)
 {
     // the guard verdict already materialised, and flags we do not own too
@@ -266,16 +305,19 @@ void Write(std::uint32_t a_generation)
         return;
     }
 
-    const auto slot = TakeNextSlot(*manager);
+    const auto slot = NextSlot(*manager);
     const auto name = SlotName(slot, *manager, *player);
 
-    PruneSlot(slot, *manager);
+    // the slot's old file goes once kSaveGame confirms this one
+    g_pendingName = name;
+    g_pendingSlot = slot;
 
     SaferSaving::ShowNotification(kNotification);
     manager->Save(name.c_str());
 
-    // one attempt per interval, so a save the engine drops cannot run through every slot
-    g_due = false;
+    // a refused save sends no kSaveGame, so it is retried after a short wait instead of every frame
+    g_due       = false;
+    g_elapsedMS = g_intervalMS - kRetryMS;
 }
 } // namespace
 
@@ -308,12 +350,19 @@ void SaferSaving::AutoSave::OnGameLoaded()
     g_elapsedMS  = 0;
     g_due        = false;
     g_slotSeeded = false;
+    g_pendingName.clear();
 }
 
-void SaferSaving::AutoSave::OnSaved()
+void SaferSaving::AutoSave::OnSaved(std::string_view a_name)
 {
     // a counter, because this may not be the main thread and Tick owns the timer
     g_rearm.fetch_add(1, std::memory_order_relaxed);
+
+    // the pending save is main thread state, so the match is made from the task queue
+    if (const auto stem = StemOf(a_name); stem.starts_with(kNamePrefix))
+    {
+        SKSE::GetTaskInterface()->AddTask([name = std::string{stem}] { Confirm(name); });
+    }
 }
 
 void SaferSaving::AutoSave::Tick()
