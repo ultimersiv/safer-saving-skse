@@ -6,7 +6,7 @@ set_config("rex_ini", true)
 add_requires("doctest 2.5.3")
 
 set_project("SaferSaving")
-set_version("1.2.0")
+set_version("1.2.1")
 set_license("GPL-3.0-only")
 
 set_languages("c++23")
