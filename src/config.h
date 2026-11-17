@@ -65,6 +65,7 @@ using Str  = Setting<std::string>;
 
 inline constexpr std::int32_t kMaxSettleSeconds{300};
 inline constexpr std::int32_t kMaxIntervalMinutes{1440};
+inline constexpr std::int32_t kMaxSafeSeconds{60};
 inline constexpr std::int32_t kMinSlots{1};
 inline constexpr std::int32_t kMaxSlots{99};
 inline constexpr std::int32_t kMaxManualSaves{999};
@@ -87,6 +88,7 @@ inline I32 settleSeconds{"Load", "iSettleSeconds", 30}; // zero disables the wai
 // on by default; the deferred autosave below replaces what it removes
 inline Bool disableVanillaAutosaves{"Autosave", "bDisableVanilla", true};
 inline I32 autoSaveMinutes{"Autosave", "iIntervalMinutes", 15}; // zero turns it off
+inline I32 autoSaveSafeSeconds{"Autosave", "iSafeSeconds", 1};  // zero saves at the first safe moment
 inline I32 autoSaveSlots{"Autosave", "iSlots", 5};
 
 // zero keeps every manual save

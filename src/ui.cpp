@@ -134,6 +134,7 @@ Config::Entry* const kGeneralEntries[]{
     &Config::settleSeconds,
     &Config::disableVanillaAutosaves,
     &Config::autoSaveMinutes,
+    &Config::autoSaveSafeSeconds,
     &Config::autoSaveSlots,
     &Config::maxManualSaves,
 };
@@ -335,7 +336,11 @@ void __stdcall RenderGeneral()
            "Unticking this does not turn them back on; do that in Settings, Gameplay.");
     Slider(Config::autoSaveMinutes, "Autosave interval", 0, Config::kMaxIntervalMinutes, "%d min", "Off",
            "Minutes of play between automatic saves. Paused time and loading screens do not count. A save that falls "
-           "due while saving is blocked happens at the next safe moment. Ctrl+click to type an exact value.");
+           "due while saving is blocked waits until saving has been safe for the time set below. Ctrl+click to type "
+           "an exact value.");
+    Slider(Config::autoSaveSafeSeconds, "Wait once safe", 0, Config::kMaxSafeSeconds, "%d s", "Off",
+           "Seconds saving has to stay safe without a break before an autosave goes ahead, so it does not fire the "
+           "moment you stop moving. Pausing starts the wait over. Off saves at the first safe moment.");
     Slider(Config::autoSaveSlots, "Autosave slots", Config::kMinSlots, Config::kMaxSlots, "%d", nullptr,
            "How many slots to rotate through. Lowering this leaves the extra files behind for you to delete.");
 

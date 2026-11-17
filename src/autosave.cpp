@@ -32,6 +32,7 @@ constexpr std::int64_t kMaxPlayMinutes{999999};
 
 // set by Configure on the main thread
 std::uint32_t g_intervalMS{0};
+std::uint32_t g_safeMS{0};
 std::uint32_t g_slots{1};
 
 // kSaveGame can arrive off the main thread; everything below it is main thread only
@@ -41,6 +42,8 @@ static_assert(decltype(g_rearm)::is_always_lock_free);
 std::uint32_t g_rearmSeen{0};
 std::uint32_t g_lastTickMS{0};
 std::uint32_t g_elapsedMS{0};
+// how long saving has been possible without a break, capped at g_safeMS
+std::uint32_t g_safeForMS{0};
 std::uint32_t g_slot{0};
 std::uint32_t g_generation{0};
 bool g_due{false};
@@ -324,20 +327,23 @@ void Write(std::uint32_t a_generation)
 void SaferSaving::AutoSave::Configure()
 {
     // the mod switched off counts as autosave off, so a queued save is dropped too
-    const auto minutes  = Config::enabled.GetValue() ? Config::autoSaveMinutes.GetValue() : 0;
-    const auto clamped  = std::clamp(minutes, kMinMinutes, Config::kMaxIntervalMinutes);
-    const auto slots    = std::clamp(Config::autoSaveSlots.GetValue(), Config::kMinSlots, Config::kMaxSlots);
-    const auto interval = minutes > 0 ? static_cast<std::uint32_t>(clamped) * 60u * 1000u : 0u;
+    const auto minutes     = Config::enabled.GetValue() ? Config::autoSaveMinutes.GetValue() : 0;
+    const auto clamped     = std::clamp(minutes, kMinMinutes, Config::kMaxIntervalMinutes);
+    const auto slots       = std::clamp(Config::autoSaveSlots.GetValue(), Config::kMinSlots, Config::kMaxSlots);
+    const auto interval    = minutes > 0 ? static_cast<std::uint32_t>(clamped) * 60u * 1000u : 0u;
+    const auto safeSeconds = std::clamp(Config::autoSaveSafeSeconds.GetValue(), 0, Config::kMaxSafeSeconds);
 
     // switching back on starts a fresh interval rather than firing on stale progress
     if (g_intervalMS == 0 && interval != 0)
     {
         g_lastTickMS = 0;
         g_elapsedMS  = 0;
+        g_safeForMS  = 0;
         g_due        = false;
     }
 
     g_intervalMS = interval;
+    g_safeMS     = static_cast<std::uint32_t>(safeSeconds) * 1000u;
     g_slots      = static_cast<std::uint32_t>(slots);
 }
 
@@ -348,6 +354,7 @@ void SaferSaving::AutoSave::OnGameLoaded()
     g_dispatched = false;
     g_lastTickMS = 0;
     g_elapsedMS  = 0;
+    g_safeForMS  = 0;
     g_due        = false;
     g_slotSeeded = false;
     g_pendingName.clear();
@@ -381,12 +388,11 @@ void SaferSaving::AutoSave::Tick()
     }
 
     // milliseconds since launch, so the time multiplier cannot skew the interval
-    const auto now = RE::GetDurationOfApplicationRunTime();
-    if (g_lastTickMS != 0)
-    {
-        g_elapsedMS += (std::min)(now - g_lastTickMS, kMaxStepMS);
-    }
-    g_lastTickMS = now;
+    const auto now  = RE::GetDurationOfApplicationRunTime();
+    const auto gap  = g_lastTickMS != 0 ? now - g_lastTickMS : 0u;
+    const auto step = (std::min)(gap, kMaxStepMS);
+    g_lastTickMS    = now;
+    g_elapsedMS += step;
 
     if (g_elapsedMS >= g_intervalMS)
     {
@@ -394,14 +400,19 @@ void SaferSaving::AutoSave::Tick()
         g_elapsedMS = 0;
     }
 
+    // timed before a save is due, so one falling due after an unbroken safe run is not held back
+    auto* player    = RE::PlayerCharacter::GetSingleton();
+    const bool safe = player && CanDispatch(player);
+    // a pausing menu blocks and unblocks with no tick in between, so a long gap breaks the run too
+    g_safeForMS = safe && gap <= kMaxStepMS ? (std::min)(g_safeForMS + step, g_safeMS) : 0;
+
     // a blocked interval waits rather than skips: due stays set until a save is attempted
     if (!g_due || g_dispatched)
     {
         return;
     }
 
-    auto* player = RE::PlayerCharacter::GetSingleton();
-    if (!player || !CanDispatch(player))
+    if (!safe || g_safeForMS < g_safeMS)
     {
         return;
     }

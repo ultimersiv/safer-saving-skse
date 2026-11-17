@@ -48,9 +48,11 @@ The default configuration disables all vanilla autosaves. In their place the mod
 
 Only time the game is actually running counts toward the interval — it does not tick while paused,
 in a menu that pauses the game, or on a loading screen. If the interval runs out while saving is
-blocked, the save is not skipped: it waits and happens at the next safe moment, however long that
-takes. Any save you make yourself restarts the interval. `[Autosave] iIntervalMinutes` changes the
-interval, `0` turns it off, and `[Autosave] iSlots` sets how many slots it rotates through. The
+blocked, the save is not skipped: it waits until saving has been safe without a break for
+`[Autosave] iSafeSeconds` (a second by default), however long that takes, so it does not fire the
+moment you stop moving. `0` saves at the first safe moment. Any save you make yourself restarts the
+interval. `[Autosave] iIntervalMinutes` changes the interval, `0` turns it off, and
+`[Autosave] iSlots` sets how many slots it rotates through. The
 saves show in the load menu as autosaves of the current character, numbered from 101, so vanilla
 autosaves and your own saves are never touched. The file sitting in a slot is deleted once the new
 save in that slot has been written, so the count stays at `iSlots` per character. If the game
